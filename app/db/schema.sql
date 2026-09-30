@@ -142,8 +142,15 @@ CREATE TABLE contacts (
     phone TEXT,
     subject TEXT,
     message TEXT NOT NULL,
-    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'resolved')),
+    resolved_by INT,
+    resolved_at TIMESTAMP,
+    resolution_notes TEXT,
+    FOREIGN KEY (resolved_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
+
+CREATE INDEX idx_contacts_status ON contacts(status);
 
 CREATE TABLE work_experience (
     exp_id SERIAL PRIMARY KEY,
