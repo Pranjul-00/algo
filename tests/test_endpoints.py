@@ -220,4 +220,58 @@ def test_verification_workflow(client):
         assert u_role == 'student'
         cur.close()
 
+def test_profile_crud_endpoints(client):
+    """Verify profile editing, experience CRUD, and education CRUD."""
+    # 1. Login as student
+    client.post('/login', data={
+        'email': 'student@alumnigo.test',
+        'password': 'student123'
+    }, follow_redirects=True)
+
+    # 2. Update profile bio, phone, city
+    update_res = client.post('/api/profile/update', data={
+        'firstName': 'Test',
+        'lastName': 'Student',
+        'bio': 'Passionate AI & full-stack developer.',
+        'phone': '9876543210',
+        'currentCity': 'New Delhi',
+        'universityName': 'Delhi University',
+        'graduationYear': '2026',
+        'major': 'Computer Science',
+        'linkedIn': 'https://linkedin.com/in/teststudent'
+    })
+    assert update_res.status_code == 200
+    assert update_res.get_json().get('success') is True
+
+    # 3. Add work experience
+    exp_res = client.post('/api/profile/experience', data={
+        'company_name': 'Google DeepMind',
+        'job_title': 'Software Engineering Intern',
+        'join_year': 2025,
+        'leave_year': 2026
+    })
+    assert exp_res.status_code == 201
+    exp_id = exp_res.get_json().get('exp_id')
+    assert exp_id is not None
+
+    # 4. Add education
+    edu_res = client.post('/api/profile/education', data={
+        'degree_type': 'B.Tech',
+        'university_name': 'Delhi University',
+        'college_name': 'Cluster Innovation Centre',
+        'major': 'Information Technology',
+        'graduation_year': 2026,
+        'gpa': '9.4'
+    })
+    assert edu_res.status_code == 201
+    detail_id = edu_res.get_json().get('detail_id')
+    assert detail_id is not None
+
+    # 5. Delete work experience and education
+    del_exp = client.delete(f'/api/profile/experience/{exp_id}')
+    assert del_exp.status_code == 200
+
+    del_edu = client.delete(f'/api/profile/education/{detail_id}')
+    assert del_edu.status_code == 200
+
 
