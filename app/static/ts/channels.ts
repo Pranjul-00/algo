@@ -394,6 +394,121 @@ createChannelForm?.addEventListener("submit", async (e) => {
   }
 });
 
+// Explore Communities Modal handler
+const exploreModal = document.getElementById("exploreCommunitiesModal");
+const openExploreBtn = document.getElementById("openExploreCommunitiesBtn");
+const explorePromptBtn = document.getElementById("explorePromptBtn");
+const closeExploreModalBtn = document.getElementById("closeExploreCommunitiesModal");
+const exploreList = document.getElementById("exploreCommunitiesList");
+
+async function loadExploreCommunities() {
+  if (!exploreList) return;
+  exploreList.innerHTML = `
+    <div style="text-align: center; padding: 2rem; color: #a0aec0;">
+      <i class="fas fa-spinner fa-spin fa-2x"></i>
+      <p style="margin-top: 0.5rem;">Loading communities...</p>
+    </div>
+  `;
+
+  try {
+    const res = await fetch("/communities/discover");
+    if (!res.ok) throw new Error("Failed to fetch communities");
+    const data = await res.json();
+    const communities = data.communities || [];
+
+    if (communities.length === 0) {
+      exploreList.innerHTML = `<div style="text-align: center; padding: 2rem; color: #718096;">No communities available yet.</div>`;
+      return;
+    }
+
+    exploreList.innerHTML = communities
+      .map((c: any) => {
+        const isJoined = c.membership_status === "active";
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px; transition: all 0.2s ease;">
+            <div>
+              <div style="font-weight: 600; color: #2d3748; font-size: 0.95rem;">
+                ${c.name} ${c.college_code ? `<span style="font-size: 0.75rem; background: #edf2f7; color: #4a5568; padding: 0.15rem 0.4rem; border-radius: 4px; margin-left: 0.4rem;">${c.college_code}</span>` : ""}
+              </div>
+              <div style="font-size: 0.8rem; color: #718096; margin-top: 0.2rem;">
+                ${c.location ? `<i class="fas fa-map-marker-alt"></i> ${c.location} &bull; ` : ""}
+                <i class="fas fa-users"></i> ${c.member_count || 0} members
+              </div>
+              ${c.description ? `<p style="font-size: 0.8rem; color: #4a5568; margin-top: 0.4rem;">${c.description}</p>` : ""}
+            </div>
+            <div>
+              ${
+                isJoined
+                  ? `<button type="button" onclick="window.location.href='?community_id=${c.community_id}'" style="background: #edf2f7; color: #4a5568; border: none; padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                      <i class="fas fa-arrow-right"></i> Open
+                    </button>`
+                  : `<button type="button" class="join-community-btn" data-community-id="${c.community_id}" style="background: var(--gradient); color: white; border: none; padding: 0.45rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                      <i class="fas fa-plus"></i> Join
+                    </button>`
+              }
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    const joinButtons = exploreList.querySelectorAll(".join-community-btn");
+    joinButtons.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const commId = btn.getAttribute("data-community-id");
+        if (!commId) return;
+        btn.setAttribute("disabled", "true");
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Joining...`;
+
+        try {
+          const joinRes = await fetch(`/communities/${commId}/join`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+          if (joinRes.ok) {
+            btn.innerHTML = `<i class="fas fa-check"></i> Joined!`;
+            setTimeout(() => {
+              window.location.href = `?community_id=${commId}`;
+            }, 600);
+          } else {
+            const errData = await joinRes.json();
+            alert(errData.error || "Failed to join community");
+            btn.removeAttribute("disabled");
+            btn.innerHTML = `<i class="fas fa-plus"></i> Join`;
+          }
+        } catch (e) {
+          console.error("Join error:", e);
+          btn.removeAttribute("disabled");
+          btn.innerHTML = `<i class="fas fa-plus"></i> Join`;
+        }
+      });
+    });
+  } catch (err) {
+    console.error("Error loading communities:", err);
+    exploreList.innerHTML = `<div style="text-align: center; padding: 2rem; color: #ef4444;">Failed to load communities. Please try again.</div>`;
+  }
+}
+
+function openExploreModal() {
+  if (exploreModal) {
+    exploreModal.classList.add("active");
+    loadExploreCommunities();
+  }
+}
+
+function closeExploreModal() {
+  if (exploreModal) {
+    exploreModal.classList.remove("active");
+  }
+}
+
+openExploreBtn?.addEventListener("click", openExploreModal);
+explorePromptBtn?.addEventListener("click", openExploreModal);
+closeExploreModalBtn?.addEventListener("click", closeExploreModal);
+exploreModal?.addEventListener("click", (e) => {
+  if (e.target === exploreModal) closeExploreModal();
+});
+
 // Message sending
 function sendMessage() {
   if (!messageInput) return;

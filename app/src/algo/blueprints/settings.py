@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, redirect, url_for, flash, request, current_app
+from flask import Blueprint, render_template, session, redirect, url_for, flash, request, jsonify, current_app
 from algo.db import get_db
 from algo.auth.decorators import login_required
 import datetime
@@ -18,7 +18,9 @@ def settings_page():
             """
             SELECT user_id, firstname, lastname, email, username, dob,
                    university_name, department, college, graduation_year, current_city, 
-                   pfp_path, role, community_id, last_login, login_count
+                   pfp_path, role, community_id, last_login, login_count,
+                   bio, profile_visibility, email_notifications, job_alerts,
+                   linkedin, github, twitter, website, phone
             FROM users 
             WHERE user_id = %s
             """,
@@ -43,14 +45,15 @@ def settings_page():
                 "community_id": user_data[13],
                 "last_login": user_data[14],
                 "login_count": user_data[15],
-                "bio": "",
-                "profile_visibility": "public",
-                "email_notifications": True,
-                "job_alerts": True,
-                "linkedin": "",
-                "github": "",
-                "twitter": "",
-                "website": "",
+                "bio": user_data[16] or "",
+                "profile_visibility": user_data[17] or "public",
+                "email_notifications": True if user_data[18] is None else bool(user_data[18]),
+                "job_alerts": True if user_data[19] is None else bool(user_data[19]),
+                "linkedin": user_data[20] or "",
+                "github": user_data[21] or "",
+                "twitter": user_data[22] or "",
+                "website": user_data[23] or "",
+                "phone": user_data[24] or "",
                 "show_email": False,
                 "allow_messages": True,
             }
@@ -122,8 +125,9 @@ def update_account():
 @login_required
 def update_privacy():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or request.form or {}
         user_id = session["user_id"]
+        visibility = data.get("profileVisibility") or data.get("profile_visibility", "public")
         db = get_db()
         cur = db.cursor()
         cur.execute(
@@ -132,12 +136,12 @@ def update_privacy():
                 profile_visibility = %s
             WHERE user_id = %s
             """,
-            (data.get("profileVisibility", "public"), user_id),
+            (visibility, user_id),
         )
         db.commit()
-        return {"success": True, "message": "Privacy settings updated successfully"}
+        return jsonify({"success": True, "message": "Privacy settings updated successfully"})
     except Exception as e:
-        return ({"success": False, "message": "Error updating privacy settings"}, 500)
+        return jsonify({"success": False, "message": "Error updating privacy settings"}), 500
     finally:
         cur.close()
 
@@ -154,10 +158,29 @@ def update_preferences():
 @login_required
 def update_notifications():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or request.form or {}
+        user_id = session["user_id"]
+        email_notifications = data.get("email_notifications", data.get("emailNotifications", True))
+        job_alerts = data.get("job_alerts", data.get("jobAlerts", True))
+        db = get_db()
+        cur = db.cursor()
+        email_str = "true" if email_notifications in [True, "true", "True", "t", 1, "1"] else "false"
+        job_str = "true" if job_alerts in [True, "true", "True", "t", 1, "1"] else "false"
+        cur.execute(
+            """
+            UPDATE users 
+            SET email_notifications = %s,
+                job_alerts = %s
+            WHERE user_id = %s
+            """,
+            (email_str, job_str, user_id),
+        )
+        db.commit()
         return {"success": True, "message": "Notifications updated successfully"}
     except Exception as e:
         return ({"success": False, "message": "Error updating notifications"}, 500)
+    finally:
+        cur.close()
 
 @bp.route("/api/change_password", methods=["POST"])
 @login_required
@@ -323,7 +346,7 @@ def export_data():
                 {
                     "name": f"{conn[0]} {conn[1]}",
                     "email": conn[2],
-                    "connected_date": str(conn[3]) if conn[3] else None,
+                    "connected_date": None,
                 }
                 for conn in connections
             ],

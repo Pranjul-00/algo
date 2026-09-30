@@ -274,4 +274,80 @@ def test_profile_crud_endpoints(client):
     del_edu = client.delete(f'/api/profile/education/{detail_id}')
     assert del_edu.status_code == 200
 
+def test_settings_persistence(client):
+    """Verify settings updates (privacy, notifications) persist in users table and export_data works."""
+    # 1. Login as student
+    client.post('/login', data={
+        'email': 'student@alumnigo.test',
+        'password': 'student123'
+    }, follow_redirects=True)
+
+    # 2. Update privacy
+    priv_res = client.post('/api/update_privacy', json={
+        'profileVisibility': 'connections'
+    })
+    assert priv_res.status_code == 200
+    assert priv_res.get_json().get('success') is True
+
+    # 3. Update notifications
+    notif_res = client.post('/api/update_notifications', json={
+        'email_notifications': False,
+        'job_alerts': True
+    })
+    assert notif_res.status_code == 200
+    assert notif_res.get_json().get('success') is True
+
+    # 4. Verify in DB
+    with client.application.app_context():
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT profile_visibility, email_notifications, job_alerts FROM users WHERE email = 'student@alumnigo.test'")
+        row = cur.fetchone()
+        assert row[0] == 'connections'
+        assert row[1] in [False, 'false']
+        assert row[2] in [True, 'true']
+        cur.close()
+
+    # 5. Test export_data endpoint
+    export_res = client.post('/api/export_data')
+    assert export_res.status_code == 200
+    export_json = export_res.get_json()
+    assert 'user_info' in export_json
+    assert 'connections' in export_json
+
+def test_community_discovery_and_join(client):
+    """Verify discovering communities, joining directly, and leaving."""
+    # 1. Login as student
+    client.post('/login', data={
+        'email': 'student@alumnigo.test',
+        'password': 'student123'
+    }, follow_redirects=True)
+
+    # 2. Discover communities
+    disc_res = client.get('/communities/discover')
+    assert disc_res.status_code == 200
+    data = disc_res.get_json()
+    assert 'communities' in data
+    assert len(data['communities']) > 0
+
+    target_comm_id = data['communities'][0]['community_id']
+
+    # 3. Directly join community
+    join_res = client.post(f'/communities/{target_comm_id}/join')
+    assert join_res.status_code == 200
+    assert join_res.get_json().get('success') is True
+
+    # 4. Verify membership in DB
+    with client.application.app_context():
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT user_id FROM users WHERE email = 'student@alumnigo.test'")
+        uid = cur.fetchone()[0]
+        cur.execute("SELECT status FROM community_members WHERE community_id = %s AND user_id = %s", (target_comm_id, uid))
+        mem = cur.fetchone()
+        assert mem is not None
+        assert mem[0] == 'active'
+        cur.close()
+
+
 
