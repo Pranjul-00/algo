@@ -12,6 +12,7 @@ CREATE TABLE communities (
     location VARCHAR(255),
     established_year INT,
     website VARCHAR(255),
+    created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -56,6 +57,8 @@ CREATE TABLE users (
     FOREIGN KEY (community_id) REFERENCES communities(community_id) ON DELETE SET NULL,
     FOREIGN KEY (verified_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
+
+ALTER TABLE communities ADD CONSTRAINT fk_communities_created_by FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL;
 
 -- Create indexes for users table
 CREATE INDEX idx_users_community ON users(community_id);
