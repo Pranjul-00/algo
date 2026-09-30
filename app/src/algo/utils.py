@@ -303,6 +303,7 @@ def send_contact_inquiry_email(full_name, email, phone, subject, message):
             msg = MIMEMultipart("alternative")
             msg["From"] = from_email
             msg["To"] = to_email
+            msg["Reply-To"] = email
             msg["Subject"] = email_subject
             msg.attach(MIMEText(plain_body, "plain", "utf-8"))
             msg.attach(MIMEText(html_body, "html", "utf-8"))
@@ -360,9 +361,12 @@ def send_inquiry_confirmation_email(
                 home_url=base_url,
             )
 
+            reply_to = os.getenv("CONTACT_RECEIVER_EMAIL", "alumnigo.sih@gmail.com")
+
             msg = MIMEMultipart("alternative")
             msg["From"] = from_email
             msg["To"] = to_email
+            msg["Reply-To"] = reply_to
             msg["Subject"] = email_subject
             msg.attach(MIMEText(plain_body, "plain", "utf-8"))
             msg.attach(MIMEText(html_body, "html", "utf-8"))
@@ -424,9 +428,12 @@ def send_inquiry_resolved_email(
                 contact_url=contact_url,
             )
 
+            reply_to = os.getenv("CONTACT_RECEIVER_EMAIL", "alumnigo.sih@gmail.com")
+
             msg = MIMEMultipart("alternative")
             msg["From"] = from_email
             msg["To"] = to_email
+            msg["Reply-To"] = reply_to
             msg["Subject"] = email_subject
             msg.attach(MIMEText(plain_body, "plain", "utf-8"))
             msg.attach(MIMEText(html_body, "html", "utf-8"))
