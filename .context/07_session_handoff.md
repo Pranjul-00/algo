@@ -1,7 +1,7 @@
 # Active Session Handoff
 
 # Active Session Snapshot
-- **Timestamp / Session Index**: 2026-09-30T11:22:00Z
+- **Timestamp / Session Index**: 2026-09-30T12:12:00Z
 - **Tasks Completed in this Turn**:
   - Implemented Contact Us persistence pipeline:
     - Altered `contacts` table with `status`, `resolved_by`, `resolved_at`, `resolution_notes`, and status index.
@@ -13,8 +13,15 @@
     - Added `@bp.route("/admin/contact/<query_id>/resolve", methods=["POST"])` for resolving inquiries.
     - Updated `app/templates/admin_dashboard.html` with stat card, inquiry cards, and resolution form.
     - Fixed blueprint namespacing in decorators and template route references (`auth.login`, `dashboard.user_dashboard`, `communities.create_community`).
-  - Added automated tests in `tests/test_endpoints.py` covering contact submission, persistence, admin dashboard display, and resolution.
-  - All tests passing 100% (6 of 6 tests passing).
+  - Added Querier Resolution Email Notification:
+    - Created `send_inquiry_resolved_email` in `app/src/algo/utils.py` to notify the user via SMTP when their inquiry is marked as resolved by the admin.
+    - Connected `resolve_contact_query` in `app/src/algo/blueprints/dashboard.py` to trigger resolution emails.
+    - Directly dispatched resolution notification email to `pranjul.here@gmail.com` for inquiry #7.
+  - Resolved Admin Auth Transparency in UI:
+    - Fixed `app/templates/admin_dashboard.html` navbar which was hardcoded to "Login / Sign Up". It now dynamically shows the logged-in admin user and a Logout button.
+    - Added flash message alerts to `admin_dashboard.html`.
+    - Added automated test `test_admin_dashboard_auth_guards` verifying unauthorized/student redirections.
+  - All tests passing 100% (7 of 7 tests passing).
 - **Current System State**: Fully deployed locally and running live.
   - Web UI: http://localhost:5000
   - Contact Us: http://localhost:5000/contact

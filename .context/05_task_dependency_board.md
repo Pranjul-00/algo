@@ -29,4 +29,6 @@
 - [x] **TASK-016**: Contact submission query persistence and asynchronous SMTP forwarding to `alumnigo.sih@gmail.com`.
 - [x] **TASK-017**: Admin dashboard metrics and management interface for viewing and resolving contact queries.
 - [x] **TASK-018**: End-to-end automated test suite verifying submission, persistence, dashboard display, and admin resolution.
+- [x] **TASK-019**: Implement querier email notification `send_inquiry_resolved_email` on inquiry resolution.
+- [x] **TASK-020**: Admin dashboard header auth state visualization, logout trigger, and flash messaging banners.
 
