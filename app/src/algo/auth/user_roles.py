@@ -498,7 +498,7 @@ def login_required(f):
 
             session["next_url"] = request.url
             flash("Please log in to access this page.", "error")
-            return redirect(url_for("login"))
+            return redirect(url_for("auth.login"))
         return f(*args, **kwargs)
 
     return decorated_function
@@ -534,14 +534,14 @@ def verified_user_required(f):
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
             flash("Please log in to access this page.", "error")
-            return redirect(url_for("login"))
+            return redirect(url_for("auth.login"))
 
         if not is_verified_user(session["user_id"]):
             flash(
                 "You need to be verified to access this feature. Please submit a verification request.",
                 "warning",
             )
-            return redirect(url_for("verification_request"))
+            return redirect(url_for("dashboard.verification_request"))
 
         return f(*args, **kwargs)
 
@@ -578,12 +578,12 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
             flash("Please log in to access this page.", "error")
-            return redirect(url_for("login"))
+            return redirect(url_for("auth.login"))
 
         user_role_info = get_user_role_info(session["user_id"])
         if not user_role_info or user_role_info["role"] != "admin":
             flash("Admin access required.", "error")
-            return redirect(url_for("user_dashboard"))
+            return redirect(url_for("dashboard.user_dashboard"))
 
         return f(*args, **kwargs)
 
@@ -621,7 +621,7 @@ def community_access_required(f):
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
             flash("Please log in to access this page.", "error")
-            return redirect(url_for("login"))
+            return redirect(url_for("auth.login"))
 
         # Get community_id from request args or form
         community_id = request.args.get("community_id") or request.form.get(
@@ -630,11 +630,11 @@ def community_access_required(f):
 
         if not community_id:
             flash("Community information required.", "error")
-            return redirect(url_for("user_dashboard"))
+            return redirect(url_for("dashboard.user_dashboard"))
 
         if not can_access_community_features(session["user_id"], community_id):
             flash("You do not have access to this community's features.", "error")
-            return redirect(url_for("user_dashboard"))
+            return redirect(url_for("dashboard.user_dashboard"))
 
         return f(*args, **kwargs)
 
