@@ -306,3 +306,77 @@ http://localhost:5000/admin_dashboard
 
     t = threading.Thread(target=_send, daemon=True)
     t.start()
+
+
+def send_inquiry_resolved_email(
+    to_email: str,
+    full_name: str,
+    subject: str,
+    resolution_notes: str,
+    original_message: str = "",
+    resolver_name: str = "Admin",
+) -> None:
+    """Send an asynchronous email notification to the user whose contact inquiry was resolved."""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    import threading
+    from datetime import datetime
+
+    def _send():
+        try:
+            smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+            smtp_port = int(os.getenv("SMTP_PORT", "587"))
+            smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("EMAIL_USER")
+            smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("EMAIL_PASS")
+            from_email = os.getenv("FROM_EMAIL", smtp_username or "alumnigo.sih@gmail.com")
+
+            if not smtp_username or not smtp_password:
+                logger.warning("SMTP credentials not configured; skipping inquiry resolved email sending.")
+                return False
+
+            msg = MIMEMultipart()
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg["Subject"] = f"[AlumniGo Support] Your inquiry has been resolved: {subject}"
+
+            now_ist = format_ist_time(datetime.utcnow(), "%Y-%m-%d %I:%M %p IST")
+            body = f"""Dear {full_name},
+
+Thank you for reaching out to AlumniGo. Your inquiry regarding "{subject}" has been reviewed and resolved by our administration team.
+
+Resolution Note / Response:
+----------------------------------------------------------------------
+{resolution_notes}
+----------------------------------------------------------------------
+
+Resolved At: {now_ist}
+Resolved By: {resolver_name}
+
+Your Original Message:
+----------------------------------------------------------------------
+{original_message}
+----------------------------------------------------------------------
+
+If you have further questions or require additional assistance, please feel free to reach back out to us at:
+http://localhost:5000/contact
+
+Best regards,
+The AlumniGo Administration Team
+"""
+            msg.attach(MIMEText(body, "plain"))
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+
+            logger.info(f"Resolution notification sent successfully to {to_email} for query '{subject}'")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send resolution notification to {to_email}: {str(e)}")
+            return False
+
+    t = threading.Thread(target=_send, daemon=True)
+    t.start()
+
