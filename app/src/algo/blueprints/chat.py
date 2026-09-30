@@ -98,36 +98,115 @@ def chat_list():
 @bp.route("/api/online_status")
 @login_required
 def get_online_status():
-    """Return list of currently online user IDs - now handled by Go WebSocket server"""
-    return jsonify(
-        {"online_users": [], "message": "Online status handled by Go WebSocket server"}
-    )
+    """Return list of currently active user IDs based on recent activity and session."""
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute(
+            "SELECT user_id FROM users WHERE last_login > NOW() - INTERVAL '15 minutes'"
+        )
+        rows = cur.fetchall()
+        online_users = [r[0] for r in rows]
+        if session.get("user_id") and session["user_id"] not in online_users:
+            online_users.append(session["user_id"])
+        return jsonify({"online_users": online_users, "success": True})
+    except Exception as e:
+        logger.error(f"Error fetching online status: {e}")
+        return jsonify({"online_users": [session.get("user_id")] if session.get("user_id") else []})
+    finally:
+        cur.close()
 
+
+@bp.route("/api/upload_file", methods=["POST"])
 @bp.route("/api/upload_image", methods=["POST"])
 @login_required
-def upload_image():
-    """Upload image and return URL"""
+def upload_chat_file():
+    """Upload chat attachment (image/document) and return accessible static URL."""
     try:
-        if "image" not in request.files:
-            return ({"error": "No image file provided"}, 400)
-        file = request.files["image"]
-        if file.filename == "":
-            return ({"error": "No file selected"}, 400)
-        if file and file.content_type.startswith("image/"):
-            import os
-            import uuid
+        file = request.files.get("file") or request.files.get("image")
+        if not file or file.filename == "":
+            return jsonify({"error": "No file provided"}), 400
 
-            file_extension = file.filename.rsplit(".", 1)[1].lower()
-            unique_filename = f"{uuid.uuid4()}.{file_extension}"
-            upload_dir = os.path.join(current_app.static_folder, "uploads")
-            os.makedirs(upload_dir, exist_ok=True)
-            file_path = os.path.join(upload_dir, unique_filename)
-            file.save(file_path)
-            image_url = f"/static/uploads/{unique_filename}"
-            return {"image_url": image_url}
-        return ({"error": "Invalid file type"}, 400)
+        import os
+        import uuid
+        from werkzeug.utils import secure_filename
+
+        orig_filename = secure_filename(file.filename) or "attachment"
+        ext = orig_filename.rsplit(".", 1)[1].lower() if "." in orig_filename else "bin"
+        unique_filename = f"{uuid.uuid4().hex}.{ext}"
+
+        upload_dir = os.path.join(current_app.static_folder, "uploads", "chat")
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, unique_filename)
+        file.save(file_path)
+
+        file_url = f"/static/uploads/chat/{unique_filename}"
+        return jsonify(
+            {
+                "success": True,
+                "file_url": file_url,
+                "image_url": file_url,
+                "filename": orig_filename,
+            }
+        ), 200
     except Exception as e:
-        return ({"error": "Upload failed"}, 500)
+        logger.error(f"Chat file upload failed: {e}")
+        return jsonify({"error": "Upload failed"}), 500
+
+
+@bp.route("/api/search_users")
+@login_required
+def search_users():
+    """Search registered users to initiate a new direct chat."""
+    q = request.args.get("q", "").strip()
+    user_id = session.get("user_id")
+    db = get_db()
+    cur = db.cursor()
+    try:
+        if q:
+            query = """
+                SELECT user_id, username, firstname, lastname, pfp_path, role, department, university_name
+                FROM users
+                WHERE user_id != %s AND (
+                    username ILIKE %s OR firstname ILIKE %s OR lastname ILIKE %s OR email ILIKE %s
+                )
+                ORDER BY firstname ASC
+                LIMIT 20
+            """
+            search_param = f"%{q}%"
+            cur.execute(query, (user_id, search_param, search_param, search_param, search_param))
+        else:
+            query = """
+                SELECT DISTINCT u.user_id, u.username, u.firstname, u.lastname, u.pfp_path, u.role, u.department, u.university_name
+                FROM users u
+                LEFT JOIN connections c ON (
+                    (c.user_id = %s AND c.con_user_id = u.user_id) OR
+                    (c.con_user_id = %s AND c.user_id = u.user_id)
+                ) AND c.status = 'accepted'
+                WHERE u.user_id != %s
+                ORDER BY u.firstname ASC
+                LIMIT 20
+            """
+            cur.execute(query, (user_id, user_id, user_id))
+
+        users = []
+        for r in cur.fetchall():
+            users.append(
+                {
+                    "user_id": r[0],
+                    "username": r[1],
+                    "name": f"{r[2]} {r[3]}".strip() or r[1],
+                    "pfp_path": r[4] or "/static/images/default_pfp.png",
+                    "role": r[5].capitalize() if r[5] else "Member",
+                    "headline": f"{r[6] or ''} at {r[7] or ''}".strip().strip("at").strip() or (r[5].capitalize() if r[5] else "AlumniGo Member"),
+                }
+            )
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        logger.error(f"Error searching users: {e}")
+        return jsonify({"success": False, "users": []})
+    finally:
+        cur.close()
 
 @bp.route("/chat/<username>")
 @login_required
