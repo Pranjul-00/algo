@@ -1,0 +1,54 @@
+# Active Session Handoff
+
+# Active Session Snapshot
+- **Timestamp / Session Index**: 2026-09-30T12:35:00Z
+- **Tasks Completed in this Turn**:
+  - Implemented Contact Us persistence pipeline:
+    - Altered `contacts` table with `status`, `resolved_by`, `resolved_at`, `resolution_notes`, and status index.
+    - Updated `app/db/schema.sql`.
+    - Wired `app/src/algo/blueprints/core.py` to persist submissions to DB.
+    - Added background thread SMTP forwarding to `alumnigo.sih@gmail.com` in `app/src/algo/utils.py`.
+  - Added Admin Dashboard inquiry management:
+    - Updated `app/src/algo/blueprints/dashboard.py` with pending count & contact list queries.
+    - Added `@bp.route("/admin/contact/<query_id>/resolve", methods=["POST"])` for resolving inquiries.
+    - Updated `app/templates/admin_dashboard.html` with stat card, inquiry cards, and resolution form.
+    - Fixed blueprint namespacing in decorators and template route references (`auth.login`, `dashboard.user_dashboard`, `communities.create_community`).
+  - Added Querier Resolution Email Notification:
+    - Created `send_inquiry_resolved_email` in `app/src/algo/utils.py` to notify the user via SMTP when their inquiry is marked as resolved by the admin.
+    - Connected `resolve_contact_query` in `app/src/algo/blueprints/dashboard.py` to trigger resolution emails.
+    - Directly dispatched resolution notification email to `pranjul.here@gmail.com` for inquiry #7.
+  - Resolved Admin Auth Transparency in UI:
+    - Fixed `app/templates/admin_dashboard.html` navbar which was hardcoded to "Login / Sign Up". It now dynamically shows the logged-in admin user and a Logout button.
+    - Added flash message alerts to `admin_dashboard.html`.
+    - Added automated test `test_admin_dashboard_auth_guards` verifying unauthorized/student redirections.
+  - Designed & Deployed Branded HTML Email Architecture:
+    - Created `app/src/algo/email_templates.py` containing responsive, inline-styled email templates matching the website's gradient theme (`#667eea` -> `#764ba2`), modern typography, badges, and action cards.
+    - Upgraded all mailers in `app/src/algo/utils.py` to `multipart/alternative` (styled HTML + plaintext fallback) for inquiry received, inquiry resolved, password reset, and security notifications.
+    - Added unit test suite `tests/test_email_templates.py`.
+  - Removed Mentions of Smart India Hackathon & Standardized Year:
+    - Updated copyright year to 2026 across all 20 HTML templates in `app/templates/`.
+    - Removed Smart India Hackathon references from email templates, chatbot datasets, and frontend stylesheets/scripts.
+  - Implemented Automated Query Acknowledgment / Auto-Responder:
+    - Added `build_inquiry_confirmation_email` template and `send_inquiry_confirmation_email` in `utils.py`.
+    - Automatically sends instant branded confirmation email with reference ID, message summary, and next-steps notice to the user upon submitting the contact form.
+    - Added unit test in `tests/test_email_templates.py`.
+  - Inbound Reply-To Routing:
+    - Configured `Reply-To: alumnigo.sih@gmail.com` across all outgoing notification mailers so replies from team members or users route directly to the AlumniGo mailbox.
+    - Verified test email dispatches to all 4 team members (`pranjul.here@gmail.com`, `adityabhagora@gmail.com`, `chandragupt.jsr@gmail.com`, `himanshu809809@gmail.com`).
+  - Email Banner Badges & Card Layout Restructuring:
+    - Restored status badges on the header banner across all email templates (`Inquiry Resolved`, `Message Received`, `Contact Inquiry`, `Security`).
+    - Removed inline badges right above greetings and headings for cleaner spacing.
+    - Restructured Admin Response card in inquiry resolution emails: moved the title (`ADMIN RESPONSE / RESOLUTION NOTE`) and subtitle (`Resolved on ... by ...`) outside the green box in matching green styling (`#15803d` / `#16a34a`), while keeping only the response text inside the green box.
+  - All tests passing 100% (11 of 11 tests passing).
+- **Current System State**: Fully deployed locally and running live.
+  - Web UI: http://localhost:5000
+  - Contact Us: http://localhost:5000/contact
+  - Admin Dashboard: http://localhost:5000/admin_dashboard
+  - WebSocket Server: ws://localhost:8080/ws
+  - Health Endpoint: http://localhost:8080/health
+  - Database: PostgreSQL on localhost:5432 (database: `alumni_platform`, user: `postgres`, password: none)
+- **Active Blockers / Edge Cases**: None.
+- **Test Accounts**:
+  - **Student**: `student@alumnigo.test` or `teststudent` / password: `student123`
+  - **Alumni**: `alumni@alumnigo.test` or `testalumni` / password: `alumni123`
+  - **Admin**: `admin@alumnigo.test` or `admin` / password: `admin123`

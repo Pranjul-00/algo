@@ -182,24 +182,33 @@ The ALGO Team
 
 
 def send_password_reset_email(to_email, reset_token, user_name=None):
-    """Send password reset email with reset link."""
+    """Send password reset email with reset link and styled HTML layout."""
     try:
         smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_username = os.getenv("SMTP_USERNAME")
-        smtp_password = os.getenv("SMTP_PASSWORD")
+        smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("EMAIL_USER")
+        smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("EMAIL_PASS")
         from_email = os.getenv("FROM_EMAIL", smtp_username)
+        base_url = os.getenv("BASE_URL", "http://localhost:5000")
 
         if not smtp_username or not smtp_password:
             logger.error("SMTP credentials not configured")
             return False
 
-        msg = MIMEMultipart()
+        from algo.email_templates import build_password_reset_email
+        reset_url = f"{base_url}/reset-password/{reset_token}"
+        email_subject, plain_body, html_body = build_password_reset_email(
+            user_name=user_name,
+            reset_url=reset_url,
+            reset_token=reset_token,
+        )
+
+        msg = MIMEMultipart("alternative")
         msg["From"] = from_email
         msg["To"] = to_email
-        subject, text_body = create_password_reset_email_content(reset_token, user_name, to_email)
-        msg["Subject"] = subject
-        msg.attach(MIMEText(text_body, "plain"))
+        msg["Subject"] = email_subject
+        msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
 
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
@@ -218,20 +227,28 @@ def send_password_changed_notification(to_email, user_name=None):
     try:
         smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_username = os.getenv("SMTP_USERNAME")
-        smtp_password = os.getenv("SMTP_PASSWORD")
+        smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("EMAIL_USER")
+        smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("EMAIL_PASS")
         from_email = os.getenv("FROM_EMAIL", smtp_username)
+        base_url = os.getenv("BASE_URL", "http://localhost:5000")
 
         if not smtp_username or not smtp_password:
             logger.error("SMTP credentials not configured")
             return False
 
-        msg = MIMEMultipart()
+        from algo.email_templates import build_password_changed_email
+        contact_url = f"{base_url}/contact"
+        email_subject, plain_body, html_body = build_password_changed_email(
+            user_name=user_name,
+            contact_url=contact_url,
+        )
+
+        msg = MIMEMultipart("alternative")
         msg["From"] = from_email
         msg["To"] = to_email
-        subject, text_body = create_password_changed_email_content(user_name, to_email)
-        msg["Subject"] = subject
-        msg.attach(MIMEText(text_body, "plain"))
+        msg["Subject"] = email_subject
+        msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
 
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
@@ -243,3 +260,195 @@ def send_password_changed_notification(to_email, user_name=None):
     except Exception as e:
         logger.error(f"Failed to send password changed notification to {to_email}: {str(e)}")
         return False
+
+
+# --- Contact Inquiry Emails ---
+
+def send_contact_inquiry_email(full_name, email, phone, subject, message):
+    """
+    Send incoming contact inquiry email to the admin inbox (alumnigo.sih@gmail.com).
+    Runs asynchronously in a background thread to prevent UI latency.
+    """
+    import threading
+    from datetime import datetime
+    from algo.email_templates import build_inquiry_received_email
+
+    def _send():
+        try:
+            smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+            smtp_port = int(os.getenv("SMTP_PORT", "587"))
+            smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("EMAIL_USER")
+            smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("EMAIL_PASS")
+            to_email = os.getenv("CONTACT_RECEIVER_EMAIL", "alumnigo.sih@gmail.com")
+            from_email = os.getenv("FROM_EMAIL", smtp_username or to_email)
+            base_url = os.getenv("BASE_URL", "http://localhost:5000")
+
+            if not smtp_username or not smtp_password:
+                logger.warning("SMTP credentials not configured; skipping inquiry email sending.")
+                return False
+
+            now_ist = format_ist_time(datetime.utcnow(), "%Y-%m-%d %I:%M %p IST")
+            admin_dash_url = f"{base_url}/admin_dashboard"
+
+            email_subject, plain_body, html_body = build_inquiry_received_email(
+                full_name=full_name,
+                email=email,
+                phone=phone,
+                subject=subject,
+                message=message,
+                submitted_at=now_ist,
+                admin_dashboard_url=admin_dash_url,
+            )
+
+            msg = MIMEMultipart("alternative")
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg["Reply-To"] = email
+            msg["Subject"] = email_subject
+            msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+
+            logger.info(f"Contact inquiry from {email} successfully forwarded to {to_email}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to forward contact inquiry from {email}: {str(e)}")
+            return False
+
+    t = threading.Thread(target=_send, daemon=True)
+    t.start()
+
+
+def send_inquiry_confirmation_email(
+    to_email: str,
+    full_name: str,
+    subject: str,
+    message: str,
+    inquiry_id: int | None = None,
+) -> None:
+    """
+    Send an automatic confirmation email to the user acknowledging receipt of their query.
+    Runs asynchronously in a daemon thread so it never delays the HTTP request.
+    """
+    import threading
+    from datetime import datetime
+    from algo.email_templates import build_inquiry_confirmation_email
+
+    def _send():
+        try:
+            smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+            smtp_port = int(os.getenv("SMTP_PORT", "587"))
+            smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("EMAIL_USER")
+            smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("EMAIL_PASS")
+            from_email = os.getenv("FROM_EMAIL", smtp_username or "alumnigo.sih@gmail.com")
+            base_url = os.getenv("BASE_URL", "http://localhost:5000")
+
+            if not smtp_username or not smtp_password:
+                logger.warning("SMTP credentials not configured; skipping inquiry confirmation email.")
+                return False
+
+            now_ist = format_ist_time(datetime.utcnow(), "%Y-%m-%d %I:%M %p IST")
+            email_subject, plain_body, html_body = build_inquiry_confirmation_email(
+                full_name=full_name,
+                subject=subject,
+                message=message,
+                submitted_at=now_ist,
+                inquiry_id=inquiry_id,
+                home_url=base_url,
+            )
+
+            reply_to = os.getenv("CONTACT_RECEIVER_EMAIL", "alumnigo.sih@gmail.com")
+
+            msg = MIMEMultipart("alternative")
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg["Reply-To"] = reply_to
+            msg["Subject"] = email_subject
+            msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+
+            logger.info(f"Auto-confirmation email sent to {to_email} for inquiry #{inquiry_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send auto-confirmation email to {to_email}: {str(e)}")
+            return False
+
+    t = threading.Thread(target=_send, daemon=True)
+    t.start()
+
+
+def send_inquiry_resolved_email(
+    to_email: str,
+    full_name: str,
+    subject: str,
+    resolution_notes: str,
+    original_message: str = "",
+    resolver_name: str = "Admin",
+) -> None:
+    """Send an asynchronous branded HTML email notification to the user whose contact inquiry was resolved."""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    import threading
+    from datetime import datetime
+    from algo.email_templates import build_inquiry_resolved_email
+
+    def _send():
+        try:
+            smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+            smtp_port = int(os.getenv("SMTP_PORT", "587"))
+            smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("EMAIL_USER")
+            smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("EMAIL_PASS")
+            from_email = os.getenv("FROM_EMAIL", smtp_username or "alumnigo.sih@gmail.com")
+            base_url = os.getenv("BASE_URL", "http://localhost:5000")
+
+            if not smtp_username or not smtp_password:
+                logger.warning("SMTP credentials not configured; skipping inquiry resolved email sending.")
+                return False
+
+            now_ist = format_ist_time(datetime.utcnow(), "%Y-%m-%d %I:%M %p IST")
+            contact_url = f"{base_url}/contact"
+
+            email_subject, plain_body, html_body = build_inquiry_resolved_email(
+                full_name=full_name,
+                subject=subject,
+                resolution_notes=resolution_notes,
+                original_message=original_message,
+                resolved_at=now_ist,
+                resolver_name=resolver_name,
+                contact_url=contact_url,
+            )
+
+            reply_to = os.getenv("CONTACT_RECEIVER_EMAIL", "alumnigo.sih@gmail.com")
+
+            msg = MIMEMultipart("alternative")
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg["Reply-To"] = reply_to
+            msg["Subject"] = email_subject
+            msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+
+            logger.info(f"Resolution notification sent successfully to {to_email} for query '{subject}'")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send resolution notification to {to_email}: {str(e)}")
+            return False
+
+    t = threading.Thread(target=_send, daemon=True)
+    t.start()
+

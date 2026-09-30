@@ -69,4 +69,17 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World!'
 
+    @app.route('/forgot_password', methods=['GET', 'POST'])
+    def forgot_password():
+        from flask import render_template, request, flash
+        if request.method == 'POST':
+            flash("If that account exists, password reset instructions have been sent.", "info")
+        return render_template("forgot_password.html")
+
+    # Backward compatibility endpoint aliases
+    app.add_url_rule('/create_community', endpoint='create_community', view_func=communities.create_community, methods=['GET', 'POST'])
+    app.add_url_rule('/user_dashboard', endpoint='user_dashboard', view_func=dashboard.user_dashboard, methods=['GET'])
+    app.add_url_rule('/admin_dashboard', endpoint='admin_dashboard', view_func=dashboard.admin_dashboard, methods=['GET'])
+    app.add_url_rule('/verification_request', endpoint='verification_request', view_func=dashboard.verification_request, methods=['GET', 'POST'])
+
     return app
