@@ -110,3 +110,20 @@ def test_contact_submission_and_resolution(client):
         assert notes == 'Verified and addressed via email.'
         cur.close()
 
+def test_admin_dashboard_auth_guards(client):
+    """Verify that unauthenticated and non-admin users cannot access admin dashboard."""
+    # 1. Unauthenticated request must redirect to login
+    unauth_res = client.get('/admin_dashboard')
+    assert unauth_res.status_code == 302
+    assert '/auth/login' in unauth_res.headers.get('Location', '')
+
+    # 2. Student login must be forbidden from admin dashboard and redirected to user_dashboard
+    client.post('/login', data={
+        'email': 'student@alumnigo.test',
+        'password': 'student123'
+    }, follow_redirects=True)
+    student_res = client.get('/admin_dashboard')
+    assert student_res.status_code == 302
+    assert '/user_dashboard' in student_res.headers.get('Location', '')
+
+
