@@ -23,3 +23,10 @@
 - [x] **TASK-012**: Seed local database (`seed_local_db.py`) with admin, student, and alumni test users and channels.
 - [x] **TASK-013**: Resolve blueprint routing, template errors, and pool closure issues (`mydb.close()`).
 - [x] **TASK-014**: Execute automated test suite (`pytest tests/`) and end-to-end integration tests with 100% pass rate.
+
+### Epic 5: Contact Inquiry Pipeline & Admin Resolution [COMPLETED]
+- [x] **TASK-015**: Database schema migration adding resolution tracking columns (`status`, `resolved_by`, `resolved_at`, `resolution_notes`, index) to `contacts` table.
+- [x] **TASK-016**: Contact submission query persistence and asynchronous SMTP forwarding to `alumnigo.sih@gmail.com`.
+- [x] **TASK-017**: Admin dashboard metrics and management interface for viewing and resolving contact queries.
+- [x] **TASK-018**: End-to-end automated test suite verifying submission, persistence, dashboard display, and admin resolution.
+
