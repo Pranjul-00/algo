@@ -134,6 +134,83 @@ def get_communities():
         cursor.close()
 
 
+@channels_bp.route("/communities/discover", methods=["GET"])
+@require_auth
+def discover_communities():
+    """Get all available communities that user can join or is a member of"""
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute(
+            """
+            SELECT c.community_id, c.name, c.college_code, c.location, c.description,
+                   cm.status as membership_status, cm.role as user_role,
+                   (SELECT COUNT(*) FROM community_members WHERE community_id = c.community_id AND status = 'active') as member_count
+            FROM communities c
+            LEFT JOIN community_members cm ON c.community_id = cm.community_id AND cm.user_id = %s
+            ORDER BY c.name
+            """,
+            (user_id,),
+        )
+        communities = cursor.fetchall()
+        return jsonify({"communities": communities}), 200
+    except Exception as e:
+        logger.error(f"Error discovering communities: {e}")
+        return jsonify({"error": "Failed to discover communities"}), 500
+    finally:
+        cursor.close()
+
+
+@channels_bp.route("/communities/<int:community_id>/join", methods=["POST"])
+@require_auth
+def join_community_direct(community_id):
+    """Directly join a community"""
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT community_id, name FROM communities WHERE community_id = %s", (community_id,))
+        comm = cursor.fetchone()
+        if not comm:
+            return jsonify({"error": "Community not found"}), 404
+
+        cursor.execute("""
+            INSERT INTO community_members (community_id, user_id, role, status)
+            VALUES (%s, %s, 'member', 'active')
+            ON CONFLICT (community_id, user_id) DO UPDATE SET status = 'active'
+        """, (community_id, user_id))
+
+        cursor.execute("UPDATE users SET community_id = COALESCE(community_id, %s) WHERE user_id = %s", (community_id, user_id))
+        conn.commit()
+        return jsonify({"success": True, "message": f"Successfully joined {comm[1]}!"}), 200
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error joining community: {e}")
+        return jsonify({"error": "Failed to join community"}), 500
+    finally:
+        cursor.close()
+
+
+@channels_bp.route("/communities/<int:community_id>/leave", methods=["POST"])
+@require_auth
+def leave_community(community_id):
+    """Leave a community"""
+    user_id = session["user_id"]
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM community_members WHERE community_id = %s AND user_id = %s", (community_id, user_id))
+        conn.commit()
+        return jsonify({"success": True, "message": "Left community successfully"}), 200
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error leaving community: {e}")
+        return jsonify({"error": "Failed to leave community"}), 500
+    finally:
+        cursor.close()
+
+
 @channels_bp.route("/communities/<int:community_id>/join-request", methods=["POST"])
 @require_auth
 def request_join_community(community_id):

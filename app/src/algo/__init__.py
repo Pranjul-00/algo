@@ -54,6 +54,7 @@ def create_app(test_config=None):
     app.register_blueprint(chat.bp)
     app.register_blueprint(communities.bp)
     app.register_blueprint(channels.channels_bp, url_prefix="/api")
+    app.register_blueprint(channels.channels_bp, name="channels_direct")
 
     from algo import utils
     @app.context_processor
