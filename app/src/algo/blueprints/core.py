@@ -19,6 +19,12 @@ def register():
     from algo.blueprints.auth import register as auth_register
     return auth_register()
 
+@bp.route('/logout')
+def logout():
+    """Forward to auth.logout."""
+    from algo.blueprints.auth import logout as auth_logout
+    return auth_logout()
+
 @bp.route('/about')
 def about():
     """Renders the about us page."""
