@@ -26,21 +26,30 @@
           <a href="#" class="logo" id="home-link">algo</a>
           <ul class="nav-links">
             <li>
-              <a href="{{ url_for('core.home')}}" class="active" data-section="home"
-                >Home</a
-              >
+              <a href="{{ url_for('core.home')}}">Home</a>
             </li>
-            <li><a href="#" data-section="browse">Browse Alumni</a></li>
-            <li><a href="#" data-section="jobs">Job Board</a></li>
-            <li><a href="#" data-section="events">Events</a></li>
+            <li><a href="{{ url_for('connections.connect') }}">Browse Alumni</a></li>
             <li>
-              <a href="{{ url_for('core.contact') }}" class="active">Contact Us</a>
+              <a href="{{ url_for('core.contact') }}">Contact Us</a>
             </li>
             <li><a href="{{ url_for('core.about') }}">About Us</a></li>
+            {% if session.get('user_id') %}
+            <li>
+              <span style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; color: white; font-weight: 600; font-size: 0.85rem;">
+                <i class="fas fa-user-shield"></i> {{ username }} (Admin)
+              </span>
+            </li>
+            <li>
+              <a href="{{ url_for('auth.logout') }}" style="color: #fca5a5; font-weight: 600;">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </a>
+            </li>
+            {% else %}
             <li><a href="{{ url_for('auth.login') }}">Login</a></li>
             <li>
               <a href="{{ url_for('auth.register') }}" class="nav-signup">Sign Up</a>
             </li>
+            {% endif %}
           </ul>
           <div class="hamburger">
             <div class="line1"></div>
@@ -54,6 +63,19 @@
     <!-- ADMIN DASHBOARD -->
     <section class="admin-section">
       <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-messages" style="margin-bottom: 1.5rem;">
+              {% for category, message in messages %}
+                <div class="flash-alert flash-{{ category }}" style="padding: 1rem 1.25rem; border-radius: 12px; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.75rem; font-weight: 500; {% if category == 'success' %}background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7;{% elif category == 'error' %}background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;{% else %}background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;{% endif %}">
+                  <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                  <span>{{ message }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
         <div class="admin-header">
           <div class="admin-welcome">
             <h1><i class="fas fa-shield-alt"></i> Admin Dashboard</h1>
@@ -257,7 +279,7 @@
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                   <input type="text" name="resolution_notes" placeholder="Optional resolution notes..." style="flex: 1; min-width: 200px; padding: 0.5rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;" />
                   <button type="submit" class="btn-approve" style="flex: 0 0 auto; padding: 0.5rem 1.25rem; font-size: 0.9rem;">
-                    <i class="fas fa-check"></i> Mark as Resolved
+                    <i class="fas fa-paper-plane"></i> Resolve & Email User
                   </button>
                 </div>
               </form>
