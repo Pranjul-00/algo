@@ -133,7 +133,6 @@ def get_user_role_info(user_id):
 
     finally:
         cur.close()
-        mydb.close()
 
 
 def is_admin(user_id, community_id=None):
@@ -189,7 +188,6 @@ def is_admin(user_id, community_id=None):
 
     finally:
         cur.close()
-        mydb.close()
 
 
 def is_verified_user(user_id):
@@ -231,7 +229,6 @@ def is_verified_user(user_id):
 
     finally:
         cur.close()
-        mydb.close()
 
 
 def can_access_community_features(user_id, community_id):
@@ -276,7 +273,6 @@ def can_access_community_features(user_id, community_id):
 
     finally:
         cur.close()
-        mydb.close()
 
 
 def get_communities():
@@ -326,7 +322,6 @@ def get_communities():
 
     finally:
         cur.close()
-        mydb.close()
 
 
 def submit_verification_request(

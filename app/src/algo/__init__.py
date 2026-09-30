@@ -69,4 +69,11 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World!'
 
+    @app.route('/forgot_password', methods=['GET', 'POST'])
+    def forgot_password():
+        from flask import render_template, request, flash
+        if request.method == 'POST':
+            flash("If that account exists, password reset instructions have been sent.", "info")
+        return render_template("forgot_password.html")
+
     return app

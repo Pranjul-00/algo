@@ -5,6 +5,7 @@ from algo.auth import user_roles
 
 bp = Blueprint('dashboard', __name__)
 
+@bp.route('/dashboard')
 @bp.route('/user_dashboard')
 @login_required
 def user_dashboard():

@@ -251,10 +251,13 @@ def connect():
             current_user=current_user,
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         flash("Error loading connections page")
         return redirect(url_for("dashboard.user_dashboard"))
     finally:
-        cur.close()
+        if 'cur' in locals() and cur is not None:
+            cur.close()
 
 @bp.route("/api/send_connection_request", methods=["POST"])
 @login_required

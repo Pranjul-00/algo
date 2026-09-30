@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, flash, redirect, url_for
 
 bp = Blueprint('core', __name__)
 
@@ -6,6 +6,18 @@ bp = Blueprint('core', __name__)
 def home():
     """Renders the main landing page."""
     return render_template('home.html')
+
+@bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """Forward to auth.login for both GET and POST."""
+    from algo.blueprints.auth import login as auth_login
+    return auth_login()
+
+@bp.route('/register', methods=['GET', 'POST'])
+def register():
+    """Forward to auth.register for both GET and POST."""
+    from algo.blueprints.auth import register as auth_register
+    return auth_register()
 
 @bp.route('/about')
 def about():
