@@ -1,7 +1,7 @@
 """
 HTML and Plaintext Email Templates for AlumniGo (ALGO).
-Designed with modern typography, theme-matching gradient banners, clean status cards,
-and robust email-client compatibility (Gmail, Apple Mail, Outlook).
+Designed with modern typography, clean theme-matching gradient banners,
+subtle pill indicators, and robust email-client compatibility.
 """
 
 import html
@@ -15,13 +15,10 @@ def _escape(text):
 
 def render_email_wrapper(
     title: str,
-    badge_text: str,
-    badge_bg: str,
-    badge_color: str,
     content_html: str,
     preheader: str = "",
 ) -> str:
-    """Master responsive HTML email container with ALGO branding banner and footer."""
+    """Master responsive HTML email container with clean ALGO branding banner and footer."""
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,29 +38,16 @@ def render_email_wrapper(
         <!-- Main Card Container -->
         <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
           
-          <!-- BRAND HEADER BANNER -->
+          <!-- CLEAN BRAND HEADER BANNER -->
           <tr>
-            <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 36px 32px 30px 32px; text-align: left;">
-              <table width="100%" border="0" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td>
-                    <!-- Logo -->
-                    <div style="display: inline-block;">
-                      <span style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff; text-decoration: none;">algo</span>
-                      <span style="display: inline-block; width: 8px; height: 8px; background-color: #38bdf8; border-radius: 50%; margin-left: 2px;"></span>
-                    </div>
-                    <div style="color: #e0e7ff; font-size: 13px; font-weight: 500; margin-top: 4px; letter-spacing: 0.2px;">
-                      AlumniGo &bull; Smart Alumni & Student Network
-                    </div>
-                  </td>
-                  <td align="right" valign="top">
-                    <!-- Status / Type Badge -->
-                    <span style="display: inline-block; background-color: {badge_bg}; color: {badge_color}; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 6px 14px; border-radius: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
-                      {_escape(badge_text)}
-                    </span>
-                  </td>
-                </tr>
-              </table>
+            <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 32px 32px 28px 32px; text-align: left;">
+              <div style="display: inline-block;">
+                <span style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff; text-decoration: none;">algo</span>
+                <span style="display: inline-block; width: 8px; height: 8px; background-color: #38bdf8; border-radius: 50%; margin-left: 2px;"></span>
+              </div>
+              <div style="color: #e0e7ff; font-size: 13px; font-weight: 500; margin-top: 4px; letter-spacing: 0.2px;">
+                AlumniGo &bull; Smart Alumni & Student Network
+              </div>
             </td>
           </tr>
 
@@ -114,7 +98,6 @@ def build_inquiry_received_email(
     email_subject = f"[AlumniGo Contact Inquiry] {subject} - {full_name}"
     preheader = f"New inquiry from {full_name} regarding {subject}"
 
-    # Plain text version
     plain_body = f"""New Contact Inquiry Received via AlumniGo Portal
 
 From: {full_name}
@@ -135,6 +118,11 @@ Review and resolve this inquiry in the Admin Dashboard:
     phone_display = _escape(phone) if phone else "<span style='color: #94a3b8; font-style: italic;'>Not provided</span>"
 
     content_html = f"""
+      <div style="margin-bottom: 14px;">
+        <span style="display: inline-block; background-color: #eff6ff; color: #1d4ed8; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 14px; border: 1px solid #bfdbfe;">
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: #2563eb; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>Contact Inquiry
+        </span>
+      </div>
       <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 700;">
         New Contact Inquiry Received
       </h2>
@@ -194,9 +182,6 @@ Review and resolve this inquiry in the Admin Dashboard:
 
     html_body = render_email_wrapper(
         title=f"New Contact Inquiry: {subject}",
-        badge_text="Incoming Inquiry",
-        badge_bg="rgba(255, 255, 255, 0.25)",
-        badge_color="#ffffff",
         content_html=content_html,
         preheader=preheader,
     )
@@ -221,7 +206,6 @@ def build_inquiry_resolved_email(
     email_subject = f"[AlumniGo Support] Your inquiry has been resolved: {subject}"
     preheader = f"Your inquiry regarding '{subject}' has been resolved by our team."
 
-    # Plain text version
     plain_body = f"""Dear {full_name},
 
 Thank you for reaching out to AlumniGo. Your inquiry regarding "{subject}" has been reviewed and resolved by our administration team.
@@ -248,9 +232,11 @@ The AlumniGo Administration Team
 
     content_html = f"""
       <div style="margin-bottom: 24px;">
-        <span style="display: inline-block; background-color: #ecfdf5; color: #047857; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1px solid #a7f3d0; margin-bottom: 12px;">
-          &#10003; RESOLVED
-        </span>
+        <div style="margin-bottom: 12px;">
+          <span style="display: inline-block; background-color: #f0fdf4; color: #166534; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 14px; border: 1px solid #bbf7d0;">
+            <span style="display: inline-block; width: 6px; height: 6px; background-color: #16a34a; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>Inquiry Resolved
+          </span>
+        </div>
         <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 700;">
           Hi {_escape(full_name)},
         </h2>
@@ -299,9 +285,6 @@ The AlumniGo Administration Team
 
     html_body = render_email_wrapper(
         title=f"Inquiry Resolved: {subject}",
-        badge_text="Inquiry Resolved",
-        badge_bg="#10b981",
-        badge_color="#ffffff",
         content_html=content_html,
         preheader=preheader,
     )
@@ -340,6 +323,11 @@ The ALGO Team
 """
 
     content_html = f"""
+      <div style="margin-bottom: 12px;">
+        <span style="display: inline-block; background-color: #eff6ff; color: #1d4ed8; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 14px; border: 1px solid #bfdbfe;">
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: #2563eb; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>Password Reset
+        </span>
+      </div>
       <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 700;">
         {_escape(greeting)}
       </h2>
@@ -372,9 +360,6 @@ The ALGO Team
 
     html_body = render_email_wrapper(
         title="Reset Your ALGO Password",
-        badge_text="Security",
-        badge_bg="#6366f1",
-        badge_color="#ffffff",
         content_html=content_html,
         preheader=preheader,
     )
@@ -406,6 +391,11 @@ The ALGO Team
 """
 
     content_html = f"""
+      <div style="margin-bottom: 12px;">
+        <span style="display: inline-block; background-color: #fef2f2; color: #991b1b; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 14px; border: 1px solid #fecaca;">
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: #dc2626; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>Security Alert
+        </span>
+      </div>
       <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 20px; font-weight: 700;">
         {_escape(greeting)}
       </h2>
@@ -431,9 +421,6 @@ The ALGO Team
 
     html_body = render_email_wrapper(
         title="Your ALGO Password Has Been Changed",
-        badge_text="Security Alert",
-        badge_bg="#ef4444",
-        badge_color="#ffffff",
         content_html=content_html,
         preheader=preheader,
     )
@@ -485,9 +472,11 @@ The AlumniGo Support Team
 
     content_html = f"""
       <div style="margin-bottom: 24px;">
-        <span style="display: inline-block; background-color: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd6fe; margin-bottom: 12px;">
-          &#10003; MESSAGE RECEIVED
-        </span>
+        <div style="margin-bottom: 12px;">
+          <span style="display: inline-block; background-color: #f5f3ff; color: #5b21b6; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 14px; border: 1px solid #ddd6fe;">
+            <span style="display: inline-block; width: 6px; height: 6px; background-color: #7c3aed; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>Message Received
+          </span>
+        </div>
         <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 700;">
           Hi {_escape(full_name)},
         </h2>
@@ -546,12 +535,8 @@ The AlumniGo Support Team
 
     html_body = render_email_wrapper(
         title=f"We've Received Your Message: {subject}",
-        badge_text="Message Logged",
-        badge_bg="#6366f1",
-        badge_color="#ffffff",
         content_html=content_html,
         preheader=preheader,
     )
 
     return email_subject, plain_body, html_body
-
