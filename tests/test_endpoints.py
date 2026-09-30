@@ -46,6 +46,17 @@ def test_channels_api(client):
     res = client.get('/channels')
     assert res.status_code == 200
 
+    # Test channel messages and members for default channel 1
+    messages_res = client.get('/channels/1/messages')
+    assert messages_res.status_code in [200, 404]
+
+    members_res = client.get('/channels/1/members')
+    assert members_res.status_code in [200, 404]
+    if members_res.status_code == 200:
+        data = members_res.get_json()
+        assert data.get('success') is True
+        assert 'members' in data
+
 def test_connect_networking_directory(client):
     """Verify alumni directory page."""
     client.post('/login', data={

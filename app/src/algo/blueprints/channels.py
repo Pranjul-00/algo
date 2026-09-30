@@ -400,8 +400,8 @@ def get_channels(community_id):
 @require_auth
 @require_community_member
 def create_channel(community_id):
-    """Create a new channel (admin/moderator only)"""
-    if request.user_community_role not in ["admin", "moderator"]:
+    """Create a new channel"""
+    if request.user_community_role not in ["admin", "moderator", "member"] and session.get("role") != "admin":
         return jsonify({"error": "Insufficient permissions"}), 403
 
     data = request.get_json()
@@ -710,29 +710,55 @@ def send_message(channel_id):
 @channels_bp.route("/channels/<int:channel_id>/members", methods=["GET"])
 @require_auth
 def get_channel_members(channel_id):
-    """Get members of a specific channel using channel_members table"""
+    """Get members of a specific channel using channel_members or community_members"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Get channel members directly from channel_members table
-        query = """
-            SELECT 
-                u.user_id, 
-                u.username, 
-                u.firstname, 
-                u.lastname, 
-                u.pfp_path,
-                cm.role,
-                cm.joined_at,
-                CASE WHEN u.last_login > NOW() - INTERVAL '5 minutes' THEN true ELSE false END as is_online
-            FROM channel_members cm
-            JOIN users u ON cm.user_id = u.user_id
-            WHERE cm.channel_id = %s
-            ORDER BY is_online DESC, u.username ASC
-        """
+        # Check channel info
+        cursor.execute("SELECT community_id, is_private FROM channels WHERE channel_id = %s", (channel_id,))
+        channel = cursor.fetchone()
+        if not channel:
+            return jsonify({"error": "Channel not found"}), 404
 
-        cursor.execute(query, (channel_id,))
+        community_id = channel["community_id"]
+        is_private = channel.get("is_private", False)
+
+        if is_private:
+            query = """
+                SELECT 
+                    u.user_id, 
+                    u.username, 
+                    u.firstname, 
+                    u.lastname, 
+                    u.pfp_path,
+                    cm.role,
+                    cm.joined_at,
+                    CASE WHEN u.last_login > NOW() - INTERVAL '15 minutes' THEN true ELSE false END as is_online
+                FROM channel_members cm
+                JOIN users u ON cm.user_id = u.user_id
+                WHERE cm.channel_id = %s
+                ORDER BY is_online DESC, u.username ASC
+            """
+            cursor.execute(query, (channel_id,))
+        else:
+            query = """
+                SELECT 
+                    u.user_id, 
+                    u.username, 
+                    u.firstname, 
+                    u.lastname, 
+                    u.pfp_path,
+                    cm.role,
+                    cm.joined_at,
+                    CASE WHEN u.last_login > NOW() - INTERVAL '15 minutes' THEN true ELSE false END as is_online
+                FROM community_members cm
+                JOIN users u ON cm.user_id = u.user_id
+                WHERE cm.community_id = %s AND cm.status = 'active'
+                ORDER BY is_online DESC, u.username ASC
+            """
+            cursor.execute(query, (community_id,))
+
         members = cursor.fetchall()
 
         # Convert to list of dictionaries
@@ -742,14 +768,14 @@ def get_channel_members(channel_id):
                 {
                     "user_id": member["user_id"],
                     "username": member["username"],
-                    "firstname": member["firstname"],
-                    "lastname": member["lastname"],
-                    "pfp_path": member["pfp_path"],
-                    "role": member["role"],
+                    "firstname": member["firstname"] or "",
+                    "lastname": member["lastname"] or "",
+                    "pfp_path": member["pfp_path"] or "",
+                    "role": member["role"] or "member",
                     "joined_at": (
                         member["joined_at"].isoformat() if member["joined_at"] else None
                     ),
-                    "is_online": member["is_online"],
+                    "is_online": bool(member["is_online"]),
                 }
             )
 
