@@ -5,14 +5,12 @@ import pytest
 # Add the app/src directory to the path so we can import the modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../app/src')))
 
-# Assuming app.py exports an 'app' instance
-from app import app as flask_app
+from algo import create_app
 
 @pytest.fixture
 def app():
     """Create and configure a new app instance for each test."""
-    # Setup test config
-    flask_app.config.update({
+    flask_app = create_app({
         "TESTING": True,
         "DEBUG": False,
         "SECRET_KEY": "test-secret"
