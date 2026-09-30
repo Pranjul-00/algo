@@ -28,9 +28,61 @@ def user_dashboard():
 
     if role == "unverified" or (role != "admin" and verification_status == "pending"):
         return redirect(url_for("dashboard.limited_dashboard"))
-        
+
+    # Fetch dynamic user metrics
+    cur = db.cursor()
+    try:
+        cur.execute("SELECT COUNT(*) FROM users WHERE role = 'alumni' AND verification_status = 'verified'")
+        total_alumni = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT COUNT(*) FROM connections 
+            WHERE (user_id = %s OR con_user_id = %s) AND status = 'accepted'
+        """, (user_id, user_id))
+        total_connections = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM channels WHERE is_active = true")
+        total_channels = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM connections WHERE con_user_id = %s AND status = 'pending'", (user_id,))
+        pending_requests = cur.fetchone()[0]
+
+        # Recent activities (incoming connection requests)
+        cur.execute("""
+            SELECT u.username, u.role
+            FROM connections c
+            JOIN users u ON c.user_id = u.user_id
+            WHERE c.con_user_id = %s AND c.status = 'pending'
+            ORDER BY c.connection_id DESC LIMIT 4
+        """, (user_id,))
+        recent_requests = [{"username": r[0], "role": r[1]} for r in cur.fetchall()]
+
+        stats = {
+            "total_alumni": total_alumni,
+            "total_connections": total_connections,
+            "total_channels": total_channels,
+            "pending_requests": pending_requests,
+        }
+    except Exception as e:
+        import logging
+        logging.error(f"Error fetching dashboard metrics: {e}")
+        stats = {
+            "total_alumni": 0,
+            "total_connections": 0,
+            "total_channels": 0,
+            "pending_requests": 0,
+        }
+        recent_requests = []
+    finally:
+        cur.close()
+
     return render_template(
-        "user_dashboard.html", username=username, role=role, pfp_path=pfp_path
+        "user_dashboard.html",
+        username=username,
+        role=role,
+        pfp_path=pfp_path,
+        stats=stats,
+        recent_requests=recent_requests,
     )
 
 @bp.route("/admin_dashboard", methods=["GET", "POST"])
