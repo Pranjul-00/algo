@@ -29,10 +29,10 @@ if pgrep -f "websocket-server" >/dev/null 2>&1; then
     echo "✅ WebSocket server processes killed"
 fi
 
-# Kill any Python app.py processes
-if pgrep -f "python.*app.py" >/dev/null 2>&1; then
-    echo "🔫 Killing Python app.py processes..."
-    pkill -f "python.*app.py"
+# Kill any Python app.py or run.py processes
+if pgrep -f "python.*(app|run)\.py" >/dev/null 2>&1; then
+    echo "🔫 Killing Python Flask server processes..."
+    pkill -f "python.*(app|run)\.py"
     echo "✅ Python app processes killed"
 fi
 
