@@ -174,6 +174,7 @@ def resolve_contact_query(query_id):
     db = get_db()
     cur = db.cursor()
     try:
+        final_notes = resolution_notes if resolution_notes else "Resolved via Admin Dashboard"
         cur.execute("""
             UPDATE contacts
             SET status = 'resolved',
@@ -181,9 +182,26 @@ def resolve_contact_query(query_id):
                 resolved_at = NOW(),
                 resolution_notes = %s
             WHERE id = %s
-        """, (user_id, resolution_notes if resolution_notes else "Resolved via Admin Dashboard", query_id))
+            RETURNING full_name, email, subject, message
+        """, (user_id, final_notes, query_id))
+        row = cur.fetchone()
         db.commit()
-        flash("Contact inquiry marked as resolved.", "success")
+
+        if row:
+            full_name, querier_email, subject, orig_msg = row
+            resolver_username = session.get("username", "Admin")
+            from algo.utils import send_inquiry_resolved_email
+            send_inquiry_resolved_email(
+                to_email=querier_email,
+                full_name=full_name,
+                subject=subject,
+                resolution_notes=final_notes,
+                original_message=orig_msg,
+                resolver_name=resolver_username,
+            )
+            flash(f"Contact inquiry marked as resolved and email notification sent to {querier_email}.", "success")
+        else:
+            flash("Contact inquiry marked as resolved.", "success")
     except Exception as e:
         import logging
         logging.error(f"Error resolving contact query {query_id}: {e}")
