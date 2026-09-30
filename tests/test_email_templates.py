@@ -63,3 +63,23 @@ def test_build_password_reset_and_changed_emails():
     assert "Your ALGO Password Has Been Changed" in s2
     assert "ALGO account password has been successfully changed" in p2
     assert "Security Alert" in h2
+
+
+def test_build_inquiry_confirmation_email():
+    from algo.email_templates import build_inquiry_confirmation_email
+
+    subject, plain, html = build_inquiry_confirmation_email(
+        full_name="Dave Wilson",
+        subject="Internship Guidance",
+        message="Looking for alumni at tech companies.",
+        submitted_at="2026-09-30 06:15 PM IST",
+        inquiry_id=42,
+    )
+    assert "[AlumniGo] We've received your message" in subject
+    assert "Dave Wilson" in plain
+    assert "#42" in plain
+    assert "Dave Wilson" in html
+    assert "#42" in html
+    assert "Looking for alumni at tech companies." in html
+    assert "MESSAGE RECEIVED" in html
+
