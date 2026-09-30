@@ -46,11 +46,15 @@
 - [x] **TASK-027**: Implement asynchronous `send_inquiry_confirmation_email` in `utils.py` and hook into `/contact` route in `core.py`.
 - [x] **TASK-028**: Add automated unit test for auto-confirmation template (`tests/test_email_templates.py`).
 
-### Epic 9: Email Template Aesthetics & Inbound Reply Routing [COMPLETED]
-- [x] **TASK-029**: Remove header banner badge box for a clean, minimal gradient banner.
-- [x] **TASK-030**: Replace artificial tick/cross icons with refined, natural circular dot status pills.
-- [x] **TASK-031**: Configure `Reply-To: alumnigo.sih@gmail.com` across all outgoing emails so recipient replies route directly to the AlumniGo team mailbox.
-- [x] **TASK-032**: Test and verify delivery to all 4 team members (`pranjul.here@gmail.com`, `adityabhagora@gmail.com`, `chandragupt.jsr@gmail.com`, `himanshu809809@gmail.com`).
+### Epic 9: Inbound Reply Routing [COMPLETED]
+- [x] **TASK-029**: Configure `Reply-To: alumnigo.sih@gmail.com` across all outgoing emails so recipient replies route directly to the AlumniGo team mailbox.
+- [x] **TASK-030**: Test and verify delivery to all 4 team members (`pranjul.here@gmail.com`, `adityabhagora@gmail.com`, `chandragupt.jsr@gmail.com`, `himanshu809809@gmail.com`).
+
+### Epic 10: Email Layout Refinements & Card Header Restructuring [COMPLETED]
+- [x] **TASK-031**: Restore status badges on the header banner across all email templates.
+- [x] **TASK-032**: Remove inline pill badges right above greetings and titles in email content bodies.
+- [x] **TASK-033**: Redesign Admin Response card: move title ("Admin Response / Resolution Note") and subtitle ("Resolved on ... by ...") outside the green box matching its theme, keeping only the response text inside the box.
+- [x] **TASK-034**: Verify email tests and live dispatch.
 
 
 

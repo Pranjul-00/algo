@@ -32,11 +32,13 @@
     - Added `build_inquiry_confirmation_email` template and `send_inquiry_confirmation_email` in `utils.py`.
     - Automatically sends instant branded confirmation email with reference ID, message summary, and next-steps notice to the user upon submitting the contact form.
     - Added unit test in `tests/test_email_templates.py`.
-  - Email Template Aesthetics & Inbound Reply-To Routing:
-    - Cleaned email header banner: removed the boxed badge on the gradient banner for a cleaner, modern look.
-    - Replaced artificial check/cross marks with sleek, subtle circular dot pills (`● Inquiry Resolved`, `● Message Received`).
+  - Inbound Reply-To Routing:
     - Configured `Reply-To: alumnigo.sih@gmail.com` across all outgoing notification mailers so replies from team members or users route directly to the AlumniGo mailbox.
     - Verified test email dispatches to all 4 team members (`pranjul.here@gmail.com`, `adityabhagora@gmail.com`, `chandragupt.jsr@gmail.com`, `himanshu809809@gmail.com`).
+  - Email Banner Badges & Card Layout Restructuring:
+    - Restored status badges on the header banner across all email templates (`Inquiry Resolved`, `Message Received`, `Contact Inquiry`, `Security`).
+    - Removed inline badges right above greetings and headings for cleaner spacing.
+    - Restructured Admin Response card in inquiry resolution emails: moved the title (`ADMIN RESPONSE / RESOLUTION NOTE`) and subtitle (`Resolved on ... by ...`) outside the green box in matching green styling (`#15803d` / `#16a34a`), while keeping only the response text inside the green box.
   - All tests passing 100% (11 of 11 tests passing).
 - **Current System State**: Fully deployed locally and running live.
   - Web UI: http://localhost:5000
