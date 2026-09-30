@@ -32,3 +32,9 @@
 - [x] **TASK-019**: Implement querier email notification `send_inquiry_resolved_email` on inquiry resolution.
 - [x] **TASK-020**: Admin dashboard header auth state visualization, logout trigger, and flash messaging banners.
 
+### Epic 6: Branded HTML Email Template Architecture [COMPLETED]
+- [x] **TASK-021**: Build responsive, modern HTML email templates matching ALGO theme with gradient banner, status badges, card containers, and mobile responsiveness (`app/src/algo/email_templates.py`).
+- [x] **TASK-022**: Upgrade all system email dispatchers (contact inquiry, resolution notification, password reset/change) to `multipart/alternative` with HTML and plain-text fallback.
+- [x] **TASK-023**: Implement automated unit test suite for email builders (`tests/test_email_templates.py`).
+
+
