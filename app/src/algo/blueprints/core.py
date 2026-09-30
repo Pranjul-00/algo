@@ -28,8 +28,38 @@ def about():
 def contact():
     """Render the contact page and handle form submission"""
     if request.method == 'POST':
-        # Logic to handle contact form submission will be moved here
-        flash('Thank you for your message. We will get back to you shortly.', 'success')
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+        subject = request.form.get('subject', '').strip()
+        message = request.form.get('message', '').strip()
+
+        if not full_name or not email or not message:
+            flash('Please fill in all required fields.', 'error')
+            return redirect(url_for('core.contact'))
+
+        try:
+            from algo.db import get_db
+            from algo import utils
+            db = get_db()
+            cur = db.cursor()
+            cur.execute("""
+                INSERT INTO contacts (full_name, email, phone, subject, message, status)
+                VALUES (%s, %s, %s, %s, %s, 'pending')
+                RETURNING id;
+            """, (full_name, email, phone, subject, message))
+            db.commit()
+            cur.close()
+
+            # Forward query to alumnigo.sih@gmail.com asynchronously
+            utils.send_contact_inquiry_email(full_name, email, phone, subject, message)
+
+            flash('Thank you for your message! It has been submitted and forwarded to our team.', 'success')
+        except Exception as e:
+            import logging
+            logging.error(f"Error saving contact message: {e}")
+            flash('An error occurred while saving your message. Please try again.', 'error')
+
         return redirect(url_for('core.contact'))
     return render_template('contact.html')
 

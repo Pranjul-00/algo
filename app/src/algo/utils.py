@@ -243,3 +243,66 @@ def send_password_changed_notification(to_email, user_name=None):
     except Exception as e:
         logger.error(f"Failed to send password changed notification to {to_email}: {str(e)}")
         return False
+
+
+# --- Contact Inquiry Emails ---
+
+def send_contact_inquiry_email(full_name, email, phone, subject, message):
+    """
+    Send incoming contact inquiry email to the admin inbox (alumnigo.sih@gmail.com).
+    Runs asynchronously in a background thread to prevent UI latency.
+    """
+    import threading
+    from datetime import datetime
+
+    def _send():
+        try:
+            smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+            smtp_port = int(os.getenv("SMTP_PORT", "587"))
+            smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("EMAIL_USER")
+            smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("EMAIL_PASS")
+            to_email = os.getenv("CONTACT_RECEIVER_EMAIL", "alumnigo.sih@gmail.com")
+            from_email = os.getenv("FROM_EMAIL", smtp_username or to_email)
+
+            if not smtp_username or not smtp_password:
+                logger.warning("SMTP credentials not configured; skipping inquiry email sending.")
+                return False
+
+            msg = MIMEMultipart()
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg["Subject"] = f"[AlumniGo Contact Inquiry] {subject} - {full_name}"
+
+            now_ist = format_ist_time(datetime.utcnow(), "%Y-%m-%d %I:%M %p IST")
+            body = f"""New Contact Inquiry Received via AlumniGo Portal
+
+From: {full_name}
+Email: {email}
+Phone: {phone if phone else 'Not provided'}
+Subject: {subject}
+Submitted At: {now_ist}
+
+Message:
+----------------------------------------------------------------------
+{message}
+----------------------------------------------------------------------
+
+This inquiry has been logged in the PostgreSQL database and can be reviewed
+and resolved from the Admin Dashboard:
+http://localhost:5000/admin_dashboard
+"""
+            msg.attach(MIMEText(body, "plain"))
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+
+            logger.info(f"Contact inquiry from {email} successfully forwarded to {to_email}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to forward contact inquiry from {email}: {str(e)}")
+            return False
+
+    t = threading.Thread(target=_send, daemon=True)
+    t.start()
