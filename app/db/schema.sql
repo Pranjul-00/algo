@@ -3,6 +3,18 @@
 
 -- Then connect to alumni_platform and run the rest:
 
+-- Communities table (referenced by users and admin_permissions)
+CREATE TABLE communities (
+    community_id SERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT,
+    college_code VARCHAR(10),
+    location VARCHAR(255),
+    established_year INT,
+    website VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Users table
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
@@ -151,18 +163,6 @@ CREATE TABLE messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (receiver_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
-
--- Communities table (referenced by admin_permissions)
-CREATE TABLE communities (
-    community_id SERIAL PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    description TEXT,
-    college_code VARCHAR(10),
-    location VARCHAR(255),
-    established_year INT,
-    website VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Admin permissions table
