@@ -43,6 +43,9 @@ def test_build_inquiry_resolved_email():
     assert "Your account has been verified." in plain
     assert "Super Admin" in plain
     assert "Inquiry Resolved" in html
+    assert "#10b981" in html  # Header banner badge color
+    assert "Admin Response / Resolution Note" in html
+    assert "Resolved on" in html
     assert "Super Admin" in html
     assert "Your account has been verified." in html
     assert "Please verify my account." in html
