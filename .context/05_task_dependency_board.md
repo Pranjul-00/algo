@@ -41,5 +41,11 @@
 - [x] **TASK-024**: Update copyright year to 2026 across all 20 HTML templates in `app/templates/`.
 - [x] **TASK-025**: Remove mentions of Smart India Hackathon and standardize year to 2026 in email templates and chatbot knowledge bases.
 
+### Epic 8: Contact Auto-Responder System [COMPLETED]
+- [x] **TASK-026**: Design branded auto-confirmation HTML email template `build_inquiry_confirmation_email` with Reference ID tracking.
+- [x] **TASK-027**: Implement asynchronous `send_inquiry_confirmation_email` in `utils.py` and hook into `/contact` route in `core.py`.
+- [x] **TASK-028**: Add automated unit test for auto-confirmation template (`tests/test_email_templates.py`).
+
+
 
 

@@ -28,7 +28,11 @@
   - Removed Mentions of Smart India Hackathon & Standardized Year:
     - Updated copyright year to 2026 across all 20 HTML templates in `app/templates/`.
     - Removed Smart India Hackathon references from email templates, chatbot datasets, and frontend stylesheets/scripts.
-  - All tests passing 100% (10 of 10 tests passing).
+  - Implemented Automated Query Acknowledgment / Auto-Responder:
+    - Added `build_inquiry_confirmation_email` template and `send_inquiry_confirmation_email` in `utils.py`.
+    - Automatically sends instant branded confirmation email with reference ID, message summary, and next-steps notice to the user upon submitting the contact form.
+    - Added unit test in `tests/test_email_templates.py`.
+  - All tests passing 100% (11 of 11 tests passing).
 - **Current System State**: Fully deployed locally and running live.
   - Web UI: http://localhost:5000
   - Contact Us: http://localhost:5000/contact
