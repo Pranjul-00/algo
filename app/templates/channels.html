@@ -69,7 +69,14 @@
         {% endif %}
 
         <div class="channels-section">
-          <div class="section-title">Channels</div>
+          <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Channels</span>
+            {% if selected_community_id %}
+            <button id="openCreateChannelBtn" type="button" style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.9rem;" title="Create Channel">
+              <i class="fas fa-plus-circle"></i>
+            </button>
+            {% endif %}
+          </div>
           <ul class="channels-list">
             {% if channels %} {% for channel in channels %}
             <li
@@ -229,6 +236,41 @@
               <i class="fas fa-comment"></i> Chat
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Channel Modal -->
+    <div class="modal-overlay" id="createChannelModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Create New Channel</h3>
+          <button type="button" class="modal-close" id="closeCreateChannelModal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-content" style="padding: 1.5rem;">
+          <form id="createChannelForm">
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--dark);">Channel Name</label>
+              <input type="text" id="newChannelName" required placeholder="e.g. opportunities" style="width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;" />
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--dark);">Description</label>
+              <textarea id="newChannelDesc" rows="2" placeholder="What is this channel about?" style="width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; resize: none;"></textarea>
+            </div>
+            <div style="margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" id="newChannelPrivate" />
+              <label for="newChannelPrivate" style="font-size: 0.85rem; color: var(--dark); cursor: pointer;">Make this channel private (invitation only)</label>
+            </div>
+            <div id="createChannelError" style="color: #ef4444; font-size: 0.85rem; margin-bottom: 0.8rem; display: none;"></div>
+            <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.8rem;">
+              <button type="button" class="btn btn-secondary" id="cancelCreateChannel">Cancel</button>
+              <button type="submit" class="btn" style="background: var(--gradient); color: white; padding: 0.6rem 1.2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-plus"></i> Create Channel
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
