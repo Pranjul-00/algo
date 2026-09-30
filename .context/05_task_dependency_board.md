@@ -56,6 +56,13 @@
 - [x] **TASK-033**: Redesign Admin Response card: move title ("Admin Response / Resolution Note") and subtitle ("Resolved on ... by ...") outside the green box matching its theme, keeping only the response text inside the box.
 - [x] **TASK-034**: Verify email tests and live dispatch.
 
+### Epic 11: Upstream Sync, Pull Request & Merge [COMPLETED]
+- [x] **TASK-035**: Synced and merged latest upstream commits (`woeter69/algo:main`), resolving schema foreign key ordering.
+- [x] **TASK-036**: Pushed all feature commits to fork (`Pranjul-00/algo:main`).
+- [x] **TASK-037**: Created Pull Request #99 on `woeter69/algo`.
+- [x] **TASK-038**: Merged PR #99 into `woeter69/algo:main` and synced local and fork remotes.
+
+
 
 
 
