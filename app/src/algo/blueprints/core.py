@@ -48,13 +48,18 @@ def contact():
                 VALUES (%s, %s, %s, %s, %s, 'pending')
                 RETURNING id;
             """, (full_name, email, phone, subject, message))
+            inquiry_id_row = cur.fetchone()
+            inquiry_id = inquiry_id_row[0] if inquiry_id_row else None
             db.commit()
             cur.close()
 
-            # Forward query to alumnigo.sih@gmail.com asynchronously
+            # 1. Forward query to admin inbox (alumnigo.sih@gmail.com) asynchronously
             utils.send_contact_inquiry_email(full_name, email, phone, subject, message)
 
-            flash('Thank you for your message! It has been submitted and forwarded to our team.', 'success')
+            # 2. Send instant confirmation acknowledgment to the querier
+            utils.send_inquiry_confirmation_email(email, full_name, subject, message, inquiry_id)
+
+            flash('Thank you for your message! A confirmation email has been sent to your address and our team will contact you soon.', 'success')
         except Exception as e:
             import logging
             logging.error(f"Error saving contact message: {e}")
