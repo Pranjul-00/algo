@@ -1,7 +1,7 @@
 # Active Session Handoff
 
 # Active Session Snapshot
-- **Timestamp / Session Index**: 2026-09-30T12:30:00Z
+- **Timestamp / Session Index**: 2026-09-30T12:35:00Z
 - **Tasks Completed in this Turn**:
   - Implemented Contact Us persistence pipeline:
     - Altered `contacts` table with `status`, `resolved_by`, `resolved_at`, `resolution_notes`, and status index.
@@ -25,7 +25,9 @@
     - Created `app/src/algo/email_templates.py` containing responsive, inline-styled email templates matching the website's gradient theme (`#667eea` -> `#764ba2`), modern typography, badges, and action cards.
     - Upgraded all mailers in `app/src/algo/utils.py` to `multipart/alternative` (styled HTML + plaintext fallback) for inquiry received, inquiry resolved, password reset, and security notifications.
     - Added unit test suite `tests/test_email_templates.py`.
-    - Dispatched live styled HTML test email to `pranjul.here@gmail.com`.
+  - Removed Mentions of Smart India Hackathon & Standardized Year:
+    - Updated copyright year to 2026 across all 20 HTML templates in `app/templates/`.
+    - Removed Smart India Hackathon references from email templates, chatbot datasets, and frontend stylesheets/scripts.
   - All tests passing 100% (10 of 10 tests passing).
 - **Current System State**: Fully deployed locally and running live.
   - Web UI: http://localhost:5000

@@ -37,4 +37,9 @@
 - [x] **TASK-022**: Upgrade all system email dispatchers (contact inquiry, resolution notification, password reset/change) to `multipart/alternative` with HTML and plain-text fallback.
 - [x] **TASK-023**: Implement automated unit test suite for email builders (`tests/test_email_templates.py`).
 
+### Epic 7: Brand & Year Standardization [COMPLETED]
+- [x] **TASK-024**: Update copyright year to 2026 across all 20 HTML templates in `app/templates/`.
+- [x] **TASK-025**: Remove mentions of Smart India Hackathon and standardize year to 2026 in email templates and chatbot knowledge bases.
+
+
 
