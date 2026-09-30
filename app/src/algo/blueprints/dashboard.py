@@ -113,6 +113,38 @@ def admin_dashboard():
         except Exception as e:
             recent_registrations = 0
             
+        try:
+            cur.execute("SELECT COUNT(*) FROM contacts WHERE status = 'pending'")
+            pending_inquiries_result = cur.fetchone()
+            pending_inquiries_count = pending_inquiries_result[0] if pending_inquiries_result else 0
+            cur.execute("""
+                SELECT c.id, c.full_name, c.email, c.phone, c.subject, c.message,
+                       c.submitted_at, c.status, c.resolved_at, c.resolution_notes,
+                       u.username as resolver_username
+                FROM contacts c
+                LEFT JOIN users u ON c.resolved_by = u.user_id
+                ORDER BY CASE WHEN c.status = 'pending' THEN 0 ELSE 1 END, c.submitted_at DESC
+            """)
+            inquiries_data = cur.fetchall()
+            contact_inquiries = []
+            for row in inquiries_data:
+                contact_inquiries.append({
+                    "id": row[0],
+                    "full_name": row[1],
+                    "email": row[2],
+                    "phone": row[3],
+                    "subject": row[4],
+                    "message": row[5],
+                    "submitted_at": row[6],
+                    "status": row[7] or 'pending',
+                    "resolved_at": row[8],
+                    "resolution_notes": row[9],
+                    "resolver_username": row[10],
+                })
+        except Exception as e:
+            pending_inquiries_count = 0
+            contact_inquiries = []
+
         cur.close()
         
         return render_template(
@@ -125,10 +157,41 @@ def admin_dashboard():
             total_users=total_users,
             total_verified=verified_users,
             recent_registrations=recent_registrations,
+            contact_inquiries=contact_inquiries,
+            pending_inquiries_count=pending_inquiries_count,
         )
     except Exception as e:
         flash("Error loading admin dashboard", "error")
         return redirect(url_for("dashboard.user_dashboard"))
+
+@bp.route("/admin/contact/<int:query_id>/resolve", methods=["POST"])
+@login_required
+@user_roles.admin_required
+def resolve_contact_query(query_id):
+    """Mark a contact inquiry as resolved by the admin."""
+    user_id = session["user_id"]
+    resolution_notes = request.form.get("resolution_notes", "").strip()
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("""
+            UPDATE contacts
+            SET status = 'resolved',
+                resolved_by = %s,
+                resolved_at = NOW(),
+                resolution_notes = %s
+            WHERE id = %s
+        """, (user_id, resolution_notes if resolution_notes else "Resolved via Admin Dashboard", query_id))
+        db.commit()
+        flash("Contact inquiry marked as resolved.", "success")
+    except Exception as e:
+        import logging
+        logging.error(f"Error resolving contact query {query_id}: {e}")
+        flash("Failed to resolve contact inquiry.", "error")
+    finally:
+        cur.close()
+
+    return redirect(url_for("dashboard.admin_dashboard"))
 
 @bp.route("/limited_dashboard", methods=["GET"])
 @login_required
