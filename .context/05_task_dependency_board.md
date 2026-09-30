@@ -46,6 +46,13 @@
 - [x] **TASK-027**: Implement asynchronous `send_inquiry_confirmation_email` in `utils.py` and hook into `/contact` route in `core.py`.
 - [x] **TASK-028**: Add automated unit test for auto-confirmation template (`tests/test_email_templates.py`).
 
+### Epic 9: Email Template Aesthetics & Inbound Reply Routing [COMPLETED]
+- [x] **TASK-029**: Remove header banner badge box for a clean, minimal gradient banner.
+- [x] **TASK-030**: Replace artificial tick/cross icons with refined, natural circular dot status pills.
+- [x] **TASK-031**: Configure `Reply-To: alumnigo.sih@gmail.com` across all outgoing emails so recipient replies route directly to the AlumniGo team mailbox.
+- [x] **TASK-032**: Test and verify delivery to all 4 team members (`pranjul.here@gmail.com`, `adityabhagora@gmail.com`, `chandragupt.jsr@gmail.com`, `himanshu809809@gmail.com`).
+
+
 
 
 
