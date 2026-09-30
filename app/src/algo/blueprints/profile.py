@@ -1,5 +1,5 @@
 from flask import (
-    Blueprint, flash, redirect, render_template, request, session, url_for, current_app
+    Blueprint, flash, redirect, render_template, request, session, url_for, current_app, jsonify
 )
 import os
 import datetime
@@ -11,28 +11,48 @@ from algo import validators
 
 bp = Blueprint('profile', __name__)
 
+@bp.route('/profile')
 @bp.route('/')
 @login_required
 def profile_redirect():
-    return redirect(url_for('profile.user_profile', username=session['username']))
+    username = session.get('username') or session.get('user_id')
+    return redirect(url_for('profile.user_profile', username=username))
 
+@bp.route('/profile/<username>')
 @bp.route('/<username>')
 @login_required
 def user_profile(username):
+    if username == 'profile':
+        return profile_redirect()
     db = get_db()
     cur = db.cursor()
     user_id = session.get('user_id')
 
-    cur.execute(
-        """
-        SELECT user_id, firstname, lastname, email, username, dob, graduation_year, 
-               university_name, department, college, current_city, pfp_path, 
-               registration_date, role, enrollment_number, community_id, last_login, login_count
-        FROM users 
-        WHERE username = %s OR user_id = %s
-    """,
-        (username, user_id),
-    )
+    # Support looking up by user_id if integer or by username
+    if username.isdigit():
+        cur.execute(
+            """
+            SELECT user_id, firstname, lastname, email, username, dob, graduation_year, 
+                   university_name, department, college, current_city, pfp_path, 
+                   registration_date, role, enrollment_number, community_id, last_login, login_count,
+                   bio, linkedin, github, twitter, website, phone
+            FROM users 
+            WHERE user_id = %s
+        """,
+            (int(username),),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT user_id, firstname, lastname, email, username, dob, graduation_year, 
+                   university_name, department, college, current_city, pfp_path, 
+                   registration_date, role, enrollment_number, community_id, last_login, login_count,
+                   bio, linkedin, github, twitter, website, phone
+            FROM users 
+            WHERE username = %s
+        """,
+            (username,),
+        )
 
     user_data = cur.fetchone()
     if not user_data:
@@ -53,21 +73,23 @@ def user_profile(username):
 
     cur.execute(
         """
-        SELECT degree_type, university_name, college_name, major, graduation_year
+        SELECT degree_type, university_name, college_name, major, graduation_year, gpa, detail_id
         FROM education_details 
         WHERE user_id = %s
+        ORDER BY graduation_year DESC NULLS LAST
     """,
         (user_data[0],),
     )
 
-    education_data = cur.fetchone()
+    education_rows = cur.fetchall()
+    education_data = education_rows[0] if education_rows else None
 
     cur.execute(
         """
-        SELECT company_name, job_title, join_year, leave_year
+        SELECT company_name, job_title, join_year, leave_year, exp_id
         FROM work_experience 
         WHERE user_id = %s
-        ORDER BY join_year DESC
+        ORDER BY join_year DESC NULLS LAST
     """,
         (user_data[0],),
     )
@@ -110,20 +132,297 @@ def user_profile(username):
 
     cur.close()
 
+    user_social_links = {
+        'linkedin': user_data[19] if len(user_data) > 19 else None,
+        'github': user_data[20] if len(user_data) > 20 else None,
+        'twitter': user_data[21] if len(user_data) > 21 else None,
+        'website': user_data[22] if len(user_data) > 22 else None,
+    }
+
     return render_template(
         'profile.html',
         user_data=user_data,
         user_interests=user_interests,
         education_data=education_data,
+        education_list=education_rows,
         work_experience=work_experience,
         connections_count=connections_count,
         community_name=community_name,
         current_user_info=current_user_info,
-        user_bio=None,
-        user_skills=[],
-        user_social_links=None,
-        user_phone=None,
+        user_bio=user_data[18],
+        user_skills=user_interests,
+        user_social_links=user_social_links,
+        user_phone=user_data[23] if len(user_data) > 23 else None,
     )
+
+def normalize_degree_type(degree):
+    if not degree:
+        return "Bachelors"
+    cleaned = degree.lower().replace(".", "").strip()
+    valid_map = {
+        "btech": "B Tech",
+        "b tech": "B Tech",
+        "mtech": "M Tech",
+        "m tech": "M Tech",
+        "be": "B.E.",
+        "me": "M.E.",
+        "bsc": "B.Sc.",
+        "msc": "M.Sc.",
+        "bca": "BCA",
+        "mca": "MCA",
+        "mba": "MBA",
+        "bba": "BBA",
+        "phd": "PHD",
+        "doctorate": "Doctorate",
+        "diploma": "Diploma",
+        "masters": "Masters",
+        "bachelors": "Bachelors",
+    }
+    for key, val in valid_map.items():
+        if key in cleaned:
+            return val
+    return "Bachelors"
+
+
+@bp.route("/api/profile/update", methods=["POST"])
+@login_required
+def update_profile():
+    """Update profile information, bio, social links, education, and avatar with local fallback."""
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    db = get_db()
+    cur = db.cursor()
+    try:
+        first_name = request.form.get("firstName")
+        last_name = request.form.get("lastName")
+        phone = request.form.get("phone")
+        current_city = request.form.get("currentCity")
+        bio = request.form.get("bio")
+        university_name = request.form.get("universityName")
+        grad_year = request.form.get("graduationYear", type=int)
+        degree = request.form.get("degree")
+        major = request.form.get("major")
+        gpa = request.form.get("gpa")
+        linkedin = request.form.get("linkedIn")
+        github = request.form.get("github")
+        twitter = request.form.get("twitter")
+        website = request.form.get("website")
+
+        # Profile Picture Upload
+        pfp_url = None
+        if "profilePicture" in request.files:
+            file = request.files["profilePicture"]
+            if file and file.filename:
+                import time
+                ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "jpg"
+                if ext in ["jpg", "jpeg", "png", "gif", "webp"]:
+                    filename = f"avatar_{user_id}_{int(time.time())}.{ext}"
+                    filepath = os.path.join(current_app.root_path, "static", "uploads", "avatars", filename)
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    file.save(filepath)
+                    pfp_url = f"/static/uploads/avatars/{filename}"
+                    session["pfp_path"] = pfp_url
+
+        # Build dynamic user update query
+        update_fields = []
+        update_values = []
+        if first_name is not None:
+            update_fields.append("firstname = %s")
+            update_values.append(first_name.strip())
+        if last_name is not None:
+            update_fields.append("lastname = %s")
+            update_values.append(last_name.strip())
+        if phone is not None:
+            update_fields.append("phone = %s")
+            update_values.append(phone.strip())
+        if current_city is not None:
+            update_fields.append("current_city = %s")
+            update_values.append(current_city.strip())
+        if bio is not None:
+            update_fields.append("bio = %s")
+            update_values.append(bio.strip())
+        if university_name is not None:
+            update_fields.append("university_name = %s")
+            update_values.append(university_name.strip())
+        if grad_year is not None:
+            update_fields.append("graduation_year = %s")
+            update_values.append(grad_year)
+        if major is not None:
+            update_fields.append("department = %s")
+            update_values.append(major.strip())
+        if linkedin is not None:
+            update_fields.append("linkedin = %s")
+            update_values.append(linkedin.strip())
+        if github is not None:
+            update_fields.append("github = %s")
+            update_values.append(github.strip())
+        if twitter is not None:
+            update_fields.append("twitter = %s")
+            update_values.append(twitter.strip())
+        if website is not None:
+            update_fields.append("website = %s")
+            update_values.append(website.strip())
+        if pfp_url is not None:
+            update_fields.append("pfp_path = %s")
+            update_values.append(pfp_url)
+
+        if update_fields:
+            update_values.append(user_id)
+            query = f"UPDATE users SET {', '.join(update_fields)} WHERE user_id = %s"
+            cur.execute(query, tuple(update_values))
+
+        # Update education details
+        if university_name or degree or major or grad_year:
+            degree = normalize_degree_type(degree)
+            cur.execute("SELECT detail_id FROM education_details WHERE user_id = %s", (user_id,))
+            ed_row = cur.fetchone()
+            parsed_gpa = float(gpa) if gpa and gpa.replace('.', '', 1).isdigit() else None
+            if ed_row:
+                cur.execute("""
+                    UPDATE education_details 
+                    SET university_name = COALESCE(%s, university_name),
+                        degree_type = COALESCE(%s, degree_type),
+                        major = COALESCE(%s, major),
+                        graduation_year = COALESCE(%s, graduation_year),
+                        gpa = COALESCE(%s, gpa)
+                    WHERE detail_id = %s
+                """, (university_name, degree, major, grad_year, parsed_gpa, ed_row[0]))
+            else:
+                cur.execute("""
+                    INSERT INTO education_details (user_id, university_name, degree_type, major, graduation_year, gpa)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (user_id, university_name or "", degree or "Bachelors", major or "", grad_year, parsed_gpa))
+
+        # Update interests
+        interests_str = request.form.get("interests")
+        if interests_str:
+            interest_names = [i.strip() for i in interests_str.split(",") if i.strip()]
+            for iname in interest_names:
+                cur.execute("INSERT INTO interests (name) VALUES (%s) ON CONFLICT (name) DO NOTHING", (iname,))
+                cur.execute("SELECT interest_id FROM interests WHERE name = %s", (iname,))
+                irow = cur.fetchone()
+                if irow:
+                    cur.execute("INSERT INTO user_interests (user_id, interest_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (user_id, irow[0]))
+
+        db.commit()
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully!",
+            "pfp_path": pfp_url,
+        })
+    except Exception as e:
+        db.rollback()
+        import logging
+        logging.error(f"Error updating profile: {e}")
+        return jsonify({"error": "Failed to update profile"}), 500
+    finally:
+        cur.close()
+
+@bp.route("/api/profile/experience", methods=["POST"])
+@login_required
+def add_experience():
+    """Add a work experience entry"""
+    user_id = session.get("user_id")
+    data = request.get_json(silent=True) or request.form
+    company_name = data.get("company_name", "").strip()
+    job_title = data.get("job_title", "").strip()
+    join_year = data.get("join_year")
+    leave_year = data.get("leave_year")
+
+    if not company_name or not job_title:
+        return jsonify({"error": "Company and title are required"}), 400
+
+    db = get_db()
+    cur = db.cursor()
+    try:
+        j_yr = int(join_year) if join_year and str(join_year).isdigit() else None
+        l_yr = int(leave_year) if leave_year and str(leave_year).isdigit() else None
+        cur.execute("""
+            INSERT INTO work_experience (user_id, company_name, job_title, join_year, leave_year)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING exp_id
+        """, (user_id, company_name, job_title, j_yr, l_yr))
+        exp_id = cur.fetchone()[0]
+        db.commit()
+        return jsonify({"success": True, "exp_id": exp_id, "message": "Experience added!"}), 201
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": "Failed to add experience"}), 500
+    finally:
+        cur.close()
+
+@bp.route("/api/profile/experience/<int:exp_id>", methods=["DELETE"])
+@login_required
+def delete_experience(exp_id):
+    """Delete a work experience entry"""
+    user_id = session.get("user_id")
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("DELETE FROM work_experience WHERE exp_id = %s AND user_id = %s", (exp_id, user_id))
+        db.commit()
+        return jsonify({"success": True, "message": "Experience deleted!"})
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": "Failed to delete experience"}), 500
+    finally:
+        cur.close()
+
+@bp.route("/api/profile/education", methods=["POST"])
+@login_required
+def add_education():
+    """Add an education entry"""
+    user_id = session.get("user_id")
+    data = request.get_json(silent=True) or request.form
+    degree_type = data.get("degree_type", "").strip()
+    university_name = data.get("university_name", "").strip()
+    college_name = data.get("college_name", "").strip()
+    major = data.get("major", "").strip()
+    graduation_year = data.get("graduation_year")
+    gpa = data.get("gpa")
+
+    if not university_name and not college_name:
+        return jsonify({"error": "Institution name is required"}), 400
+
+    db = get_db()
+    cur = db.cursor()
+    try:
+        degree_type = normalize_degree_type(degree_type)
+        g_yr = int(graduation_year) if graduation_year and str(graduation_year).isdigit() else None
+        parsed_gpa = float(gpa) if gpa and str(gpa).replace('.', '', 1).isdigit() else None
+        cur.execute("""
+            INSERT INTO education_details (user_id, degree_type, university_name, college_name, major, graduation_year, gpa)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING detail_id
+        """, (user_id, degree_type, university_name, college_name, major, g_yr, parsed_gpa))
+        detail_id = cur.fetchone()[0]
+        db.commit()
+        return jsonify({"success": True, "detail_id": detail_id, "message": "Education added!"}), 201
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": "Failed to add education"}), 500
+    finally:
+        cur.close()
+
+@bp.route("/api/profile/education/<int:detail_id>", methods=["DELETE"])
+@login_required
+def delete_education(detail_id):
+    """Delete an education entry"""
+    user_id = session.get("user_id")
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("DELETE FROM education_details WHERE detail_id = %s AND user_id = %s", (detail_id, user_id))
+        db.commit()
+        return jsonify({"success": True, "message": "Education deleted!"})
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": "Failed to delete education"}), 500
+    finally:
+        cur.close()
+
 
 @bp.route("/complete_profile", methods=["GET", "POST"])
 @login_required
