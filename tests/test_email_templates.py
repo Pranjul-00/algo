@@ -42,7 +42,7 @@ def test_build_inquiry_resolved_email():
     assert "[AlumniGo Support]" in subject
     assert "Your account has been verified." in plain
     assert "Super Admin" in plain
-    assert "RESOLVED" in html
+    assert "Inquiry Resolved" in html
     assert "Super Admin" in html
     assert "Your account has been verified." in html
     assert "Please verify my account." in html
@@ -81,5 +81,5 @@ def test_build_inquiry_confirmation_email():
     assert "Dave Wilson" in html
     assert "#42" in html
     assert "Looking for alumni at tech companies." in html
-    assert "MESSAGE RECEIVED" in html
+    assert "Message Received" in html
 
