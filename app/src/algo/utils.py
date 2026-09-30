@@ -322,6 +322,66 @@ def send_contact_inquiry_email(full_name, email, phone, subject, message):
     t.start()
 
 
+def send_inquiry_confirmation_email(
+    to_email: str,
+    full_name: str,
+    subject: str,
+    message: str,
+    inquiry_id: int | None = None,
+) -> None:
+    """
+    Send an automatic confirmation email to the user acknowledging receipt of their query.
+    Runs asynchronously in a daemon thread so it never delays the HTTP request.
+    """
+    import threading
+    from datetime import datetime
+    from algo.email_templates import build_inquiry_confirmation_email
+
+    def _send():
+        try:
+            smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+            smtp_port = int(os.getenv("SMTP_PORT", "587"))
+            smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("EMAIL_USER")
+            smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("EMAIL_PASS")
+            from_email = os.getenv("FROM_EMAIL", smtp_username or "alumnigo.sih@gmail.com")
+            base_url = os.getenv("BASE_URL", "http://localhost:5000")
+
+            if not smtp_username or not smtp_password:
+                logger.warning("SMTP credentials not configured; skipping inquiry confirmation email.")
+                return False
+
+            now_ist = format_ist_time(datetime.utcnow(), "%Y-%m-%d %I:%M %p IST")
+            email_subject, plain_body, html_body = build_inquiry_confirmation_email(
+                full_name=full_name,
+                subject=subject,
+                message=message,
+                submitted_at=now_ist,
+                inquiry_id=inquiry_id,
+                home_url=base_url,
+            )
+
+            msg = MIMEMultipart("alternative")
+            msg["From"] = from_email
+            msg["To"] = to_email
+            msg["Subject"] = email_subject
+            msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+
+            logger.info(f"Auto-confirmation email sent to {to_email} for inquiry #{inquiry_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send auto-confirmation email to {to_email}: {str(e)}")
+            return False
+
+    t = threading.Thread(target=_send, daemon=True)
+    t.start()
+
+
 def send_inquiry_resolved_email(
     to_email: str,
     full_name: str,

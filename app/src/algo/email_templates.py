@@ -439,3 +439,119 @@ The ALGO Team
     )
 
     return email_subject, plain_body, html_body
+
+
+# --- 5. Inquiry Received Auto-Confirmation (To Querier) ---
+
+def build_inquiry_confirmation_email(
+    full_name: str,
+    subject: str,
+    message: str,
+    submitted_at: str,
+    inquiry_id: int | None = None,
+    home_url: str = "http://localhost:5000",
+) -> tuple[str, str, str]:
+    """
+    Build email subject, plain text body, and styled HTML body for instant auto-responder
+    confirming query receipt to the user who submitted the contact form.
+    """
+    email_subject = f"[AlumniGo] We've received your message: {subject}"
+    preheader = f"Hi {full_name}, thank you for contacting AlumniGo. Our team has received your inquiry."
+    ref_display = f"#{inquiry_id}" if inquiry_id else "Pending"
+
+    plain_body = f"""Dear {full_name},
+
+Thank you for reaching out to AlumniGo!
+
+We have received your message regarding "{subject}" (Reference ID: {ref_display}) and our team has noted your query.
+
+Submitted On: {submitted_at}
+
+Summary of your message:
+----------------------------------------------------------------------
+{message}
+----------------------------------------------------------------------
+
+What to expect next:
+- A member of our administration or support team will review your query.
+- You will receive a resolution response directly at this email address.
+
+In the meantime, feel free to explore our platform:
+{home_url}
+
+Best regards,
+The AlumniGo Support Team
+"""
+
+    content_html = f"""
+      <div style="margin-bottom: 24px;">
+        <span style="display: inline-block; background-color: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1px solid #ddd6fe; margin-bottom: 12px;">
+          &#10003; MESSAGE RECEIVED
+        </span>
+        <h2 style="margin: 0 0 8px 0; color: #0f172a; font-size: 22px; font-weight: 700;">
+          Hi {_escape(full_name)},
+        </h2>
+        <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.6;">
+          Thank you for reaching out to us. We have received your inquiry regarding <strong style="color: #0f172a;">"{_escape(subject)}"</strong> and our team has logged it into our support queue.
+        </p>
+      </div>
+
+      <!-- Ticket / Info Box -->
+      <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+        <tr>
+          <td style="padding: 16px 20px;">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding: 5px 0; width: 120px; font-size: 13px; font-weight: 600; color: #64748b;">Reference ID:</td>
+                <td style="padding: 5px 0; font-size: 14px; font-weight: 700; color: #4338ca;">{_escape(ref_display)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; font-size: 13px; font-weight: 600; color: #64748b;">Status:</td>
+                <td style="padding: 5px 0; font-size: 13px; font-weight: 600; color: #d97706;">In Queue / Pending Review</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; font-size: 13px; font-weight: 600; color: #64748b;">Submitted On:</td>
+                <td style="padding: 5px 0; font-size: 13px; color: #64748b;">{_escape(submitted_at)}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Next Steps Callout -->
+      <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 0 10px 10px 0; padding: 16px 18px; font-size: 13px; line-height: 1.6; color: #166534; margin-bottom: 24px;">
+        <strong>What happens next?</strong><br />
+        Our college administration and support staff actively review incoming messages. We will contact you or post a resolution note directly to this email address soon.
+      </div>
+
+      <!-- Message Recap -->
+      <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px;">
+        Copy of Your Submitted Message
+      </div>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; font-size: 13px; line-height: 1.6; color: #475569; white-space: pre-wrap; margin-bottom: 28px;">
+{_escape(message)}
+      </div>
+
+      <!-- Button -->
+      <table width="100%" border="0" cellpadding="0" cellspacing="0" style="text-align: center;">
+        <tr>
+          <td align="center">
+            <a href="{home_url}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 26px; border-radius: 10px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);">
+              Visit AlumniGo Platform &rarr;
+            </a>
+          </td>
+        </tr>
+      </table>
+    """
+
+    html_body = render_email_wrapper(
+        title=f"We've Received Your Message: {subject}",
+        badge_text="Message Logged",
+        badge_bg="#6366f1",
+        badge_color="#ffffff",
+        content_html=content_html,
+        preheader=preheader,
+    )
+
+    return email_subject, plain_body, html_body
+
