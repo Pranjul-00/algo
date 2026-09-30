@@ -5,6 +5,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../app/src')))
 
 from algo import create_app
+from algo.db import get_db
 
 @pytest.fixture
 def client():
@@ -158,5 +159,65 @@ def test_chat_api_endpoints(client):
     search_data = search_res.get_json()
     assert 'users' in search_data
     assert isinstance(search_data['users'], list)
+
+def test_verification_workflow(client):
+    """Verify student submitting verification request and admin reviewing/approving it."""
+    # 1. Login as student and submit verification request
+    client.post('/login', data={
+        'email': 'student@alumnigo.test',
+        'password': 'student123'
+    }, follow_redirects=True)
+
+    vr_res = client.post('/verification_request', data={
+        'college_id': 1,
+        'requested_role': 'student',
+        'student_id': 'CIC2026CS01',
+        'graduation_year': 2026,
+        'department': 'Information Technology',
+        'request_message': 'Please verify my student identity.'
+    }, follow_redirects=True)
+    assert vr_res.status_code == 200
+
+    # 2. Check limited dashboard reflects submission
+    lim_res = client.get('/limited_dashboard')
+    assert lim_res.status_code == 200
+
+    # 3. Log out student, log in as admin, and verify pending request appears
+    client.get('/logout', follow_redirects=True)
+    client.post('/login', data={
+        'email': 'admin@alumnigo.test',
+        'password': 'admin123'
+    }, follow_redirects=True)
+
+    admin_res = client.get('/admin_dashboard')
+    assert admin_res.status_code == 200
+    assert b'CIC2026CS01' in admin_res.data
+
+    # 4. Find student user_id
+    with client.application.app_context():
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT user_id FROM users WHERE email = 'student@alumnigo.test'")
+        student_user_id = cur.fetchone()[0]
+        cur.close()
+
+    # 5. Admin approves verification request
+    approve_res = client.post('/api/handle_verification_request', json={
+        'user_id': student_user_id,
+        'action': 'approve'
+    })
+    assert approve_res.status_code == 200
+    approve_data = approve_res.get_json()
+    assert approve_data.get('success') is True
+
+    # 6. Verify user is now verified in DB
+    with client.application.app_context():
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT verification_status, role FROM users WHERE user_id = %s", (student_user_id,))
+        v_status, u_role = cur.fetchone()
+        assert v_status == 'verified'
+        assert u_role == 'student'
+        cur.close()
 
 

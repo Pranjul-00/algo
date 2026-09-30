@@ -73,7 +73,13 @@
                 <label for="college_id">Select Your College *</label>
                 <select id="college_id" name="college_id" required>
                   <option value="">Choose your college...</option>
-                  <option value="1">Sample University (Sample Location)</option>
+                  {% if communities %}
+                    {% for comm in communities %}
+                    <option value="{{ comm[0] }}">{{ comm[1] }}{% if comm[2] %} ({{ comm[2] }}){% endif %}</option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="1">Cluster Innovation Centre (Delhi University)</option>
+                  {% endif %}
                 </select>
               </div>
 

@@ -54,16 +54,33 @@ def admin_dashboard():
         
         try:
             cur.execute(
-                "SELECT COUNT(*) FROM users WHERE verification_status = 'pending' AND role != 'unverified'"
+                "SELECT COUNT(*) FROM users WHERE verification_status = 'pending'"
             )
             pending_count_result = cur.fetchone()
             pending_count = pending_count_result[0] if pending_count_result else 0
             cur.execute(
                 """
-                SELECT user_id, username, email, role, pfp_path, registration_date 
-                FROM users 
-                WHERE verification_status = 'pending' AND role != 'unverified'
-                ORDER BY registration_date DESC
+                SELECT 
+                    u.user_id, 
+                    u.username, 
+                    u.email, 
+                    COALESCE(vr.requested_role, u.role) as requested_role, 
+                    u.pfp_path, 
+                    COALESCE(vr.created_at, u.registration_date) as created_at,
+                    c.name as community_name,
+                    COALESCE(vr.department, u.department) as department,
+                    COALESCE(vr.graduation_year, u.graduation_year) as graduation_year,
+                    vr.student_id as verification_id,
+                    vr.request_message as message
+                FROM users u
+                LEFT JOIN LATERAL (
+                    SELECT * FROM verification_requests 
+                    WHERE user_id = u.user_id 
+                    ORDER BY created_at DESC LIMIT 1
+                ) vr ON true
+                LEFT JOIN communities c ON vr.community_id = c.community_id
+                WHERE u.verification_status = 'pending'
+                ORDER BY created_at DESC
                 """
             )
             pending_requests_data = cur.fetchall()
@@ -74,12 +91,19 @@ def admin_dashboard():
                         "user_id": row[0],
                         "username": row[1],
                         "email": row[2],
-                        "requested_role": row[3],
+                        "requested_role": row[3] or "student",
                         "pfp_path": row[4],
                         "created_at": row[5],
+                        "community_name": row[6],
+                        "department": row[7],
+                        "graduation_year": row[8],
+                        "verification_id": row[9],
+                        "message": row[10],
                     }
                 )
         except Exception as e:
+            import logging
+            logging.error(f"Error loading pending requests: {e}")
             pending_count = 0
             pending_requests = []
             
@@ -240,18 +264,31 @@ def limited_dashboard():
             "pfp_path": user_row[5],
         }
         
-        verification_request = None
+        cur.execute("""
+            SELECT request_id, created_at, status, requested_role, department, review_notes
+            FROM verification_requests
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """, (user_id,))
+        vr_row = cur.fetchone()
         verification_req = None
-        if verification_request:
+        if vr_row:
             verification_req = {
-                "request_id": verification_request[0],
-                "created_at": verification_request[1],
+                "request_id": vr_row[0],
+                "created_at": vr_row[1],
+                "status": vr_row[2],
+                "requested_role": vr_row[3],
+                "department": vr_row[4],
+                "review_notes": vr_row[5],
             }
             
         return render_template(
             "limited_dashboard.html", user=user, verification_request=verification_req
         )
     except Exception as e:
+        import logging
+        logging.error(f"Error loading limited dashboard: {e}")
         flash("An error occurred loading the dashboard.", "error")
         return redirect(url_for("core.home"))
     finally:
@@ -262,19 +299,45 @@ def limited_dashboard():
 @login_required
 def verification_request():
     """Handle verification requests from users"""
+    user_id = session["user_id"]
+    db = get_db()
+    cur = db.cursor()
     try:
-        user_id = session["user_id"]
         if request.method == "POST":
+            college_id = request.form.get("college_id", type=int)
+            requested_role = request.form.get("requested_role", "student")
+            student_id = request.form.get("student_id", "").strip()
+            graduation_year = request.form.get("graduation_year", type=int)
+            department = request.form.get("department", "").strip()
+            request_message = request.form.get("request_message", "").strip()
+
+            cur.execute("""
+                INSERT INTO verification_requests (
+                    user_id, community_id, requested_role, student_id,
+                    graduation_year, department, request_message, status, created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', NOW(), NOW())
+                RETURNING request_id
+            """, (user_id, college_id, requested_role, student_id, graduation_year, department, request_message))
+
+            cur.execute("""
+                UPDATE users
+                SET verification_status = 'pending',
+                    role = %s,
+                    department = %s,
+                    graduation_year = %s
+                WHERE user_id = %s
+            """, (requested_role, department, graduation_year, user_id))
+
+            db.commit()
             flash(
                 "Your verification request has been submitted successfully! An admin will review it soon.",
                 "success",
             )
             return redirect(url_for("dashboard.limited_dashboard"))
-        db = get_db()
-        cur = db.cursor()
+
         cur.execute(
             """
-            SELECT firstname, lastname, email, role, university_name, graduation_year
+            SELECT firstname, lastname, email, role, department, graduation_year
             FROM users WHERE user_id = %s
             """,
             (user_id,),
@@ -283,17 +346,24 @@ def verification_request():
         if not user_info:
             flash("User information not found", "error")
             return redirect(url_for("dashboard.limited_dashboard"))
-        firstname, lastname, email, user_role, uni_name, grad_year = user_info
+        firstname, lastname, email, user_role, department, grad_year = user_info
         form_data = {
             "firstname": firstname,
             "lastname": lastname,
             "email": email,
-            "requested_role": user_role or "student",
+            "requested_role": user_role if user_role != "unverified" else "student",
             "graduation_year": grad_year,
-            "university_name": uni_name,
+            "department": department or "",
         }
-        return render_template("verification_request.html", form_data=form_data)
+
+        cur.execute("SELECT community_id, name, location FROM communities WHERE is_active = true ORDER BY name ASC")
+        communities = cur.fetchall()
+
+        return render_template("verification_request.html", form_data=form_data, communities=communities)
     except Exception as e:
+        db.rollback()
+        import logging
+        logging.error(f"Error in verification request: {e}")
         flash("An error occurred. Please try again.", "error")
         return redirect(url_for("dashboard.user_dashboard"))
     finally:
@@ -331,16 +401,50 @@ def handle_verification_request():
             )
         username, email, current_role = user_info
         if action == "approve":
+            cur.execute("""
+                SELECT requested_role, community_id 
+                FROM verification_requests 
+                WHERE user_id = %s 
+                ORDER BY created_at DESC LIMIT 1
+            """, (user_id,))
+            req_info = cur.fetchone()
+            approved_role = req_info[0] if req_info and req_info[0] else current_role
+            comm_id = req_info[1] if req_info else None
+
             cur.execute(
                 """
                 UPDATE users 
                 SET verification_status = 'verified', 
+                    role = %s,
                     verified_by = %s, 
                     verified_at = NOW()
                 WHERE user_id = %s
                 """,
+                (approved_role, admin_id, user_id),
+            )
+
+            cur.execute(
+                """
+                UPDATE verification_requests
+                SET status = 'approved',
+                    reviewed_by = %s,
+                    reviewed_at = NOW(),
+                    review_notes = 'Approved by administrator'
+                WHERE user_id = %s AND status = 'pending'
+                """,
                 (admin_id, user_id),
             )
+
+            if comm_id:
+                cur.execute(
+                    """
+                    INSERT INTO community_members (community_id, user_id, role, status, joined_at)
+                    VALUES (%s, %s, 'member', 'active', NOW())
+                    ON CONFLICT (community_id, user_id) DO UPDATE SET status = 'active'
+                    """,
+                    (comm_id, user_id),
+                )
+
             message = f"Verification request approved for {username}"
         else:
             cur.execute(
@@ -354,6 +458,18 @@ def handle_verification_request():
                 """,
                 (admin_id, user_id),
             )
+
+            cur.execute(
+                """
+                UPDATE verification_requests
+                SET status = 'rejected',
+                    reviewed_by = %s,
+                    reviewed_at = NOW(),
+                    review_notes = 'Request rejected by administrator'
+                WHERE user_id = %s AND status = 'pending'
+                """,
+                (admin_id, user_id),
+            )
             message = f"Verification request rejected for {username}"
         db.commit()
         return {
@@ -363,6 +479,9 @@ def handle_verification_request():
             "user_id": user_id,
         }
     except Exception as e:
+        db.rollback()
+        import logging
+        logging.error(f"Error handling verification request: {e}")
         return ({"success": False, "message": "Internal server error"}, 500)
     finally:
         cur.close()
