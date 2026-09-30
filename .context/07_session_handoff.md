@@ -47,6 +47,7 @@
   - Docker CI & Containerization Fixes:
     - Restored root `Dockerfile` and configured `.dockerignore` so GitHub Actions `Docker Image CI` workflow succeeds without missing file errors.
     - Updated `deploy/Dockerfile` and `deploy/supervisord.conf` with accurate entrypoints (`python run.py`) and config locations.
+    - Verified `Docker Image CI` workflow completed successfully on GitHub Actions (run #36720643486).
   - All tests passing 100% (11 of 11 tests passing).
 - **Current System State**: Fully deployed locally and running live.
   - Web UI: http://localhost:5000

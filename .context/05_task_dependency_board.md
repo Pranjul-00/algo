@@ -65,6 +65,8 @@
 ### Epic 12: Docker CI Workflow & Containerization Fixes [COMPLETED]
 - [x] **TASK-039**: Restored root `Dockerfile` and configured root build context with `.dockerignore` for GitHub Actions CI.
 - [x] **TASK-040**: Corrected deployment paths in `deploy/Dockerfile` and fixed entrypoint command in `deploy/supervisord.conf` (`run.py`).
+- [x] **TASK-041**: Verified `Docker Image CI` workflow passes with success on GitHub Actions (`woeter69/algo` run #36720643486).
+
 
 
 
