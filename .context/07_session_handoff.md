@@ -44,6 +44,9 @@
     - Opened Pull Request [#99](https://github.com/woeter69/algo/pull/99) on `woeter69/algo`.
     - Successfully merged PR #99 into `woeter69/algo:main`.
     - Synchronized local `main` and `origin/main` with the merged upstream state.
+  - Docker CI & Containerization Fixes:
+    - Restored root `Dockerfile` and configured `.dockerignore` so GitHub Actions `Docker Image CI` workflow succeeds without missing file errors.
+    - Updated `deploy/Dockerfile` and `deploy/supervisord.conf` with accurate entrypoints (`python run.py`) and config locations.
   - All tests passing 100% (11 of 11 tests passing).
 - **Current System State**: Fully deployed locally and running live.
   - Web UI: http://localhost:5000

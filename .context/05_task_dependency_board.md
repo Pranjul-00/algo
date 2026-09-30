@@ -62,6 +62,11 @@
 - [x] **TASK-037**: Created Pull Request #99 on `woeter69/algo`.
 - [x] **TASK-038**: Merged PR #99 into `woeter69/algo:main` and synced local and fork remotes.
 
+### Epic 12: Docker CI Workflow & Containerization Fixes [COMPLETED]
+- [x] **TASK-039**: Restored root `Dockerfile` and configured root build context with `.dockerignore` for GitHub Actions CI.
+- [x] **TASK-040**: Corrected deployment paths in `deploy/Dockerfile` and fixed entrypoint command in `deploy/supervisord.conf` (`run.py`).
+
+
 
 
 
