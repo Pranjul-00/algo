@@ -126,4 +126,26 @@ def test_admin_dashboard_auth_guards(client):
     assert student_res.status_code == 302
     assert '/user_dashboard' in student_res.headers.get('Location', '')
 
+def test_chat_api_endpoints(client):
+    """Verify online status and user search endpoints for chat."""
+    # 1. Login as student
+    client.post('/login', data={
+        'email': 'student@alumnigo.test',
+        'password': 'student123'
+    }, follow_redirects=True)
+
+    # 2. Test /api/online_status
+    online_res = client.get('/api/online_status')
+    assert online_res.status_code == 200
+    data = online_res.get_json()
+    assert 'online_users' in data
+    assert isinstance(data['online_users'], list)
+
+    # 3. Test /api/search_users
+    search_res = client.get('/api/search_users?q=Alumni')
+    assert search_res.status_code == 200
+    search_data = search_res.get_json()
+    assert 'users' in search_data
+    assert isinstance(search_data['users'], list)
+
 
