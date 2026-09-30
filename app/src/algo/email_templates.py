@@ -81,11 +81,10 @@ def render_email_wrapper(
                 AlumniGo Platform
               </div>
               <div style="font-size: 12px; color: #64748b; line-height: 1.6; margin-bottom: 14px;">
-                Connecting students, alumni, and institutions for mentorship and career opportunities.<br />
-                Smart India Hackathon (SIH) 2025
+                Connecting students, alumni, and institutions for mentorship and career opportunities.
               </div>
               <div style="font-size: 12px; color: #94a3b8;">
-                &copy; 2025 AlumniGo. All rights reserved.
+                &copy; 2026 AlumniGo. All rights reserved.
               </div>
             </td>
           </tr>
