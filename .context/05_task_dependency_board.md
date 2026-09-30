@@ -67,6 +67,47 @@
 - [x] **TASK-040**: Corrected deployment paths in `deploy/Dockerfile` and fixed entrypoint command in `deploy/supervisord.conf` (`run.py`).
 - [x] **TASK-041**: Verified `Docker Image CI` workflow passes with success on GitHub Actions (`woeter69/algo` run #36720643486).
 
+### Epic 13: DM Engine & Real-Time Chat [COMPLETED]
+- [x] **TASK-042**: Upgraded `go-websocket-client.ts` with direct chat message routing (`sendDirectMessage`, `sendChannelMessage`, direct typing indicators).
+- [x] **TASK-043**: Implemented `/api/online_status`, `/api/search_users`, and chat attachments in `app/src/algo/blueprints/chat.py`.
+- [x] **TASK-044**: Connected "New Message" modal, live search, and optimistic attachment delivery in `app/static/ts/chat.ts`.
+- [x] **TASK-045**: Verified chat endpoints and WebSocket communications with automated tests.
+
+### Epic 14: Channels Architecture & Real-Time Persistence [COMPLETED]
+- [x] **TASK-046**: Rewrote `app/static/ts/channels.ts`: dynamic `loadChannelMessages(channelId)` from `GET /channels/<id>/messages`, `loadChannelMembers(channelId)` with active user preview modal, typing indicator, and real-time message broadcasting via Go WebSockets.
+- [x] **TASK-047**: Implemented public channel fallback in `get_channel_members` (`app/src/algo/blueprints/channels.py`) to query `community_members` so members list is never stuck on loading.
+- [x] **TASK-048**: Added "+ Create Channel" button and modal dialog in `app/templates/channels.html`, posting to `POST /communities/<id>/channels`.
+
+### Epic 15: Verification Workflow & Limited Dashboard [COMPLETED]
+- [x] **TASK-049**: Fixed broken `url_for('profile_redirect')` and `url_for('verification_request')` in `app/templates/limited_dashboard.html`.
+- [x] **TASK-050**: Connected `verification_request.html` to dynamically load colleges from `communities` table.
+- [x] **TASK-051**: Implemented full submission in `dashboard.verification_request`: inserts into `verification_requests` table and updates `users.verification_status = 'pending'`.
+- [x] **TASK-052**: Updated `admin_dashboard()` to join `verification_requests` and `communities` to display real student ID, department, grad year, college, and message.
+- [x] **TASK-053**: Updated `/api/handle_verification_request` to approve/reject both `users` and `verification_requests`, and auto-enrolled approved users into `community_members`.
+- [x] **TASK-054**: Added root `/logout` route forwarder in `core.py`.
+
+### Epic 16: User Dashboard Metrics & Dynamic Feed [COMPLETED]
+- [x] **TASK-055**: Replaced hardcoded stats (1,247 alumni, 89 jobs, etc.) in `app/src/algo/blueprints/dashboard.py` (`user_dashboard`) and `app/templates/user_dashboard.html` with real DB queries (`total_alumni`, `total_connections`, `total_channels`, `pending_requests`).
+- [x] **TASK-056**: Replaced broken `href="#"` buttons with working endpoints: Browse Alumni -> `connections.connect`, Requests -> `connections.requests_page`, Channels -> `communities.channels`, Open Chat -> `chat.chat_list`.
+- [x] **TASK-057**: Connected dropdown menu items to `/profile`, `/settings`, and `/logout`.
+- [x] **TASK-058**: Rendered dynamic recent activity feed of incoming connection requests.
+
+### Epic 17: User Profile Editing & Experience/Education CRUD [COMPLETED]
+- [x] **TASK-059**: Populated `app/templates/partials/edit_profile_modal.html` with real user attributes instead of dummy data.
+- [x] **TASK-060**: Implemented `normalize_degree_type` and added `/api/profile/update`, `/api/profile/experience` (POST & DELETE), and `/api/profile/education` (POST & DELETE) in `app/src/algo/blueprints/profile.py`.
+- [x] **TASK-061**: Updated `app/static/ts/profile.ts` to submit `#profileForm` via `fetch('/api/profile/update')`.
+- [x] **TASK-062**: Added avatar file upload with local disk storage in `app/static/uploads/avatars/`.
+
+### Epic 18: Community Discovery & Settings Persistence [COMPLETED]
+- [x] **TASK-063**: Implemented `/communities/discover`, `/communities/<id>/join` (direct join for verified members), and `/communities/<id>/leave` in `channels.py`.
+- [x] **TASK-064**: Built "Explore Communities" modal dialog in `app/templates/channels.html` and connected in `app/static/ts/channels.ts`.
+- [x] **TASK-065**: Wired Settings page (`settings.py` and `settings.html`) with real DB persistence for `profile_visibility`, `email_notifications`, and `job_alerts`.
+- [x] **TASK-066**: Fixed tuple index out of range crash in `/api/export_data` JSON export endpoint.
+
+### Epic 19: Navigation Link & Footer Audit [COMPLETED]
+- [x] **TASK-067**: Audited and replaced dead `href="#"` navbar and footer links across `register.html`, `thanks.html`, `token_expired.html`, `token_invalid.html`, `verification_request.html`, `user_dashboard.html`, and `profile.html`.
+- [x] **TASK-068**: Ensured all automated unit, integration, and endpoint tests pass 100% (16 of 16 tests passing).
+
 
 
 

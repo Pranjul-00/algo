@@ -1,63 +1,57 @@
 # Active Session Handoff
 
 # Active Session Snapshot
-- **Timestamp / Session Index**: 2026-09-30T12:35:00Z
-- **Tasks Completed in this Turn**:
-  - Implemented Contact Us persistence pipeline:
-    - Altered `contacts` table with `status`, `resolved_by`, `resolved_at`, `resolution_notes`, and status index.
-    - Updated `app/db/schema.sql`.
-    - Wired `app/src/algo/blueprints/core.py` to persist submissions to DB.
-    - Added background thread SMTP forwarding to `alumnigo.sih@gmail.com` in `app/src/algo/utils.py`.
-  - Added Admin Dashboard inquiry management:
-    - Updated `app/src/algo/blueprints/dashboard.py` with pending count & contact list queries.
-    - Added `@bp.route("/admin/contact/<query_id>/resolve", methods=["POST"])` for resolving inquiries.
-    - Updated `app/templates/admin_dashboard.html` with stat card, inquiry cards, and resolution form.
-    - Fixed blueprint namespacing in decorators and template route references (`auth.login`, `dashboard.user_dashboard`, `communities.create_community`).
-  - Added Querier Resolution Email Notification:
-    - Created `send_inquiry_resolved_email` in `app/src/algo/utils.py` to notify the user via SMTP when their inquiry is marked as resolved by the admin.
-    - Connected `resolve_contact_query` in `app/src/algo/blueprints/dashboard.py` to trigger resolution emails.
-    - Directly dispatched resolution notification email to `pranjul.here@gmail.com` for inquiry #7.
-  - Resolved Admin Auth Transparency in UI:
-    - Fixed `app/templates/admin_dashboard.html` navbar which was hardcoded to "Login / Sign Up". It now dynamically shows the logged-in admin user and a Logout button.
-    - Added flash message alerts to `admin_dashboard.html`.
-    - Added automated test `test_admin_dashboard_auth_guards` verifying unauthorized/student redirections.
-  - Designed & Deployed Branded HTML Email Architecture:
-    - Created `app/src/algo/email_templates.py` containing responsive, inline-styled email templates matching the website's gradient theme (`#667eea` -> `#764ba2`), modern typography, badges, and action cards.
-    - Upgraded all mailers in `app/src/algo/utils.py` to `multipart/alternative` (styled HTML + plaintext fallback) for inquiry received, inquiry resolved, password reset, and security notifications.
-    - Added unit test suite `tests/test_email_templates.py`.
-  - Removed Mentions of Smart India Hackathon & Standardized Year:
-    - Updated copyright year to 2026 across all 20 HTML templates in `app/templates/`.
-    - Removed Smart India Hackathon references from email templates, chatbot datasets, and frontend stylesheets/scripts.
-  - Implemented Automated Query Acknowledgment / Auto-Responder:
-    - Added `build_inquiry_confirmation_email` template and `send_inquiry_confirmation_email` in `utils.py`.
-    - Automatically sends instant branded confirmation email with reference ID, message summary, and next-steps notice to the user upon submitting the contact form.
-    - Added unit test in `tests/test_email_templates.py`.
-  - Inbound Reply-To Routing:
-    - Configured `Reply-To: alumnigo.sih@gmail.com` across all outgoing notification mailers so replies from team members or users route directly to the AlumniGo mailbox.
-    - Verified test email dispatches to all 4 team members (`pranjul.here@gmail.com`, `adityabhagora@gmail.com`, `chandragupt.jsr@gmail.com`, `himanshu809809@gmail.com`).
-  - Email Banner Badges & Card Layout Restructuring:
-    - Restored status badges on the header banner across all email templates (`Inquiry Resolved`, `Message Received`, `Contact Inquiry`, `Security`).
-    - Removed inline badges right above greetings and headings for cleaner spacing.
-  - Upstream Sync, Pull Request & Merge:
-    - Synced latest upstream changes from `woeter69/algo:main`.
-    - Pushed all local commits to fork (`Pranjul-00/algo:main`).
-    - Opened Pull Request [#99](https://github.com/woeter69/algo/pull/99) on `woeter69/algo`.
-    - Successfully merged PR #99 into `woeter69/algo:main`.
-    - Synchronized local `main` and `origin/main` with the merged upstream state.
-  - Docker CI & Containerization Fixes:
-    - Restored root `Dockerfile` and configured `.dockerignore` so GitHub Actions `Docker Image CI` workflow succeeds without missing file errors.
-    - Updated `deploy/Dockerfile` and `deploy/supervisord.conf` with accurate entrypoints (`python run.py`) and config locations.
-    - Verified `Docker Image CI` workflow completed successfully on GitHub Actions (run #36720643486).
-  - All tests passing 100% (11 of 11 tests passing).
+- **Timestamp / Session Index**: 2026-09-30T14:50:00Z
+- **Tasks Completed Across Epics 13-19**:
+  - **Epic 13 (DM Engine & Real-Time Chat)**:
+    - Upgraded `app/static/ts/go-websocket-client.ts` with direct chat message routing (`sendDirectMessage`, `sendChannelMessage`, direct typing indicators).
+    - Implemented `/api/online_status`, `/api/search_users`, and chat attachments in `app/src/algo/blueprints/chat.py`.
+    - Wired "New Message" modal, live search, and optimistic attachment delivery in `app/static/ts/chat.ts`.
+  - **Epic 14 (Channels Architecture & Real-Time Persistence)**:
+    - Rewrote `app/static/ts/channels.ts` with real-time channel message loading (`GET /channels/<id>/messages`), dynamic channel members loading with preview modal, and Go WebSocket broadcasting.
+    - Added fallback query to `community_members` in `get_channel_members` so members list is never stuck on loading.
+    - Added "+ Create Channel" button and modal dialog in `app/templates/channels.html`, posting to `POST /communities/<id>/channels`.
+  - **Epic 15 (Verification Workflow & Limited Dashboard)**:
+    - Fixed broken `url_for('profile_redirect')` and `url_for('verification_request')` in `app/templates/limited_dashboard.html`.
+    - Connected `verification_request.html` to dynamically load colleges from `communities` table.
+    - Implemented verification submission in `dashboard.py`: inserts into `verification_requests` and updates `users.verification_status = 'pending'`.
+    - Updated `admin_dashboard()` to join `verification_requests` and `communities` displaying real student ID, department, grad year, college, and message.
+    - Updated `/api/handle_verification_request` to approve/reject requests, and auto-enrolled approved users into `community_members`.
+    - Added `/logout` route forwarder in `core.py`.
+  - **Epic 16 (User Dashboard Metrics & Dynamic Feed)**:
+    - Replaced hardcoded stats with real DB queries (`total_alumni`, `total_connections`, `total_channels`, `pending_requests`).
+    - Replaced broken `href="#"` buttons with working endpoints (Browse Alumni, Requests, Channels, Open Chat).
+    - Connected user dropdown menu items to `/profile`, `/settings`, and `/logout`.
+    - Rendered dynamic recent activity feed of incoming connection requests.
+  - **Epic 17 (Profile & Experience/Education CRUD)**:
+    - Populated `edit_profile_modal.html` with real user attributes.
+    - Implemented `normalize_degree_type` and added `/api/profile/update`, `/api/profile/experience` (POST & DELETE), and `/api/profile/education` (POST & DELETE) in `profile.py`.
+    - Updated `profile.ts` to submit `#profileForm` via `fetch('/api/profile/update')`.
+    - Added avatar file upload with local disk storage in `app/static/uploads/avatars/`.
+  - **Epic 18 (Community Discovery & Settings Persistence)**:
+    - Implemented `/communities/discover`, `/communities/<id>/join`, and `/communities/<id>/leave` in `channels.py`.
+    - Built "Explore Communities" modal dialog in `channels.html` and connected in `channels.ts`.
+    - Wired Settings page (`settings.py` and `settings.html`) with real DB persistence for `profile_visibility`, `email_notifications`, and `job_alerts`.
+    - Fixed tuple index out of range crash in `/api/export_data` JSON export endpoint.
+  - **Epic 19 (Navigation Link & Footer Audit)**:
+    - Audited and replaced dead `href="#"` navbar and footer links across `register.html`, `thanks.html`, `token_expired.html`, `token_invalid.html`, `verification_request.html`, `user_dashboard.html`, and `profile.html`.
+    - Verified all 16 automated tests pass with 100% success (`pytest tests/`).
+    - Verified frontend asset builds with zero TypeScript or Tailwind compilation errors.
 - **Current System State**: Fully deployed locally and running live.
   - Web UI: http://localhost:5000
   - Contact Us: http://localhost:5000/contact
+  - User Dashboard: http://localhost:5000/user_dashboard
   - Admin Dashboard: http://localhost:5000/admin_dashboard
+  - Channels: http://localhost:5000/channels
+  - Settings: http://localhost:5000/settings
   - WebSocket Server: ws://localhost:8080/ws
   - Health Endpoint: http://localhost:8080/health
-  - Database: PostgreSQL on localhost:5432 (database: `alumni_platform`, user: `postgres`, password: none)
+  - Database: PostgreSQL on localhost:5432 (database: `alumni_platform`)
 - **Active Blockers / Edge Cases**: None.
 - **Test Accounts**:
+  - Admin: `admin@alumnigo.test` / `admin123`
+  - Student: `student@alumnigo.test` / `student123`
+  - Alumni: `alumni@alumnigo.test` / `alumni123`
   - **Student**: `student@alumnigo.test` or `teststudent` / password: `student123`
   - **Alumni**: `alumni@alumnigo.test` or `testalumni` / password: `alumni123`
   - **Admin**: `admin@alumnigo.test` or `admin` / password: `admin123`
